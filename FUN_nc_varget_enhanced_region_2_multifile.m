@@ -182,7 +182,7 @@ if isstruct( filelist ) && isfield( filelist, 'var' ) && isfield( filelist, 'fil
     presaved_info = filelist;
     filepath_list = {presaved_info.file.path};
 
-    if ( exist( 'time_var_name', 'var' ) && ~isempty( time_var_name ) ) ||(  exist( 'dim_varname', 'var' ) && ~isempty( dim_varname ) )
+    if ( exist( 'time_var_name', 'var' ) && ~isempty( time_var_name ) ) ||(  exist( 'dim_varname', 'var' ) && ~isequal( dim_varname, dim_name ) ) % dim_varname is set to dim_name by default
         error(' time_var_name & dim_varname should be defined when the pre-saved .mat file is generated! They cannot be defined here!')
     end
     
