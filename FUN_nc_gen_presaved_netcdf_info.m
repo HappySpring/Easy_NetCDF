@@ -128,7 +128,7 @@ for ii = 1:length( filepath_list )
     
     % check - variables
     tmp_xor = setxor( {fn_info.Variables.Name}, varlist );
-    if isempty( tmp_xor );
+    if isempty( tmp_xor )
         % PASS
     else
        fprintf('Error with following variables: \n      ');
@@ -199,8 +199,8 @@ end
 
 %% output 
 if ~isempty( output_file_path )
-    sprintf('writting into %s \n', output_file_path )
+    fprintf('writting into %s \n', output_file_path )
     save( output_file_path, 'pregen_info' );
 else
-    sprintf('Results will not be written into the disk since `output_file_path` is empty \n');
+    fprintf('Results will not be written into the disk since `output_file_path` is empty \n');
 end

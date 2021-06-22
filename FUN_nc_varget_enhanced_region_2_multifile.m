@@ -1,7 +1,7 @@
 function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname )
-% [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile_v2( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname )
+% [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname )
 % 
-% [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile_v2( presaved_info, varname, dim_name, dim_limit, merge_dim_name )
+% [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( presaved_info, varname, dim_name, dim_limit )
 %
 %
 % Advanced nc file loader
