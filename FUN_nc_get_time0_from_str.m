@@ -31,6 +31,19 @@ function [time0, unit_str, unit_to_day] = FUN_nc_get_time0_from_str( time_str )
 
 % -------------------------------------------------------------------------
 % by L. Chi
+% V1.11 2021-06-24: add support for other format by "datenum" with its
+%                     default behaviors. Please note that this may lead to 
+%                     errors. And there is a potential bug in the matlab 
+%                     built-in function datenum (See exampmles below)
+%
+%                     >> datestr(datenum('0001-00-00'))
+%                     >> ans =
+%                         '31-Dec-1999'
+% 
+%                     >> datestr(datenum('0015-00-00'))
+%                     >> ans =
+%                         '31-Dec-0014'
+% 
 % V1.10 2020-07-09: use regular expression to detect the time format
 % V1.05 2019-08-24: Add support for msec
 % V1.04 2017-04-16: Add support for minutes
@@ -91,7 +104,12 @@ function [time0, unit_str, unit_to_day] = FUN_nc_get_time0_from_str( time_str )
     
     % ---- ## error if none of the pre-defined formats matched.------------
     if isempty( time_str_selected )
-        error(['Unknown time format: ' time0_str])
+        try
+            time0 = datenum( time0_str );
+            fprintf(' FUN_nc_get_time0_from_str: "%s" -> %s. Please abort the command if this conversion is wrong \n', time0_str, datestr(time0) )
+        catch
+            error(['Unknown time format: ' time0_str])
+        end
     end
     
     % % ---- Archive: Old codes -------------------------------------------
