@@ -1,14 +1,17 @@
-function pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path )
+function pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path, varargin)
 % pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path )
 % This is an internal function called by FUN_nc_varget_enhanced_region_2_multifile
-% 
+% Please refer to the comments in "FUN_nc_varget_enhanced_region_2_multifile.m" for input parameters.
+%
+%
+% 2021-06-29 V1.10 By L. Chi: (partly) support outputting relative path 
+%                               The input "path_relative_to" must be part of the absolute path for each file.
 % xxxx-xx-xx V1.00 by L. Chi (L.Chi.Ocean@outlook.com)
 
 %% 
 % =========================================================================
 % # set default values
 % =========================================================================
-
 
 if ~exist('dim_name','var')
     dim_name = [];
@@ -27,6 +30,16 @@ if ~exist('merge_dim_name','var')
 end
 
 pregen_info.merge_dim.name = merge_dim_name;
+
+% If "path_relative_to" is not empty, the "folder" in the output structure
+% will be replaced by paths relative to "path_relative_to"
+[path_relative_to, varargin] = FUN_codetools_read_from_varargin( varargin, 'path_relative_to', [], true );
+
+if ~isempty(varargin)
+   disp(varargin)
+   error('Unknown paramters detected!'); 
+end
+
 
 %%
 % =========================================================================
@@ -140,7 +153,7 @@ for ii = 1:length( filepath_list )
     
     % check - dimensions
     tmp_xor = setxor( {fn_info.Dimensions.Name}, dimlist );
-    if isempty( tmp_xor );
+    if isempty( tmp_xor )
         % PASS
     else
        fprintf('Error with following dimensions: \n      ');
@@ -181,10 +194,9 @@ for ii = 1:length( filepath_list )
 
     end
     
-    idim = [];
+    %idim = [];
 end
 
-ii = [];
 
 %% 
 % =========================================================================
@@ -197,7 +209,70 @@ for iv = 1:length( varlist )
     end
 end
 
-%% output 
+%% 
+% =========================================================================
+% # replace absolute path by relatve path
+% =========================================================================
+% This feature is partly supported at this point.
+%   The input "path_relative_to" must be part of the absolute path for each file.
+%   This should be enough for most cases. 
+
+if ~isempty( path_relative_to )
+    
+    path_relative_to = fullfile(path_relative_to);
+    
+    if length(path_relative_to) > 1 && ( path_relative_to(end) == '\' || path_relative_to(end) == '/' )
+        path_relative_to = path_relative_to(1:end-1);
+    end
+    
+    
+    for ii = 1:length( pregen_info.file )
+        
+        [tem_pathstr, tem_name, tem_ext] = fileparts( pregen_info.file(ii).path );
+        
+        %pregen_info.file(ii).name = [tem_name, tem_ext];
+        
+        tem_match_ind = strfind( tem_pathstr, path_relative_to );
+        if length( tem_match_ind ) == 1 && tem_match_ind == 1
+            % find the relative path from the absolute path.
+            pregen_info.file(ii).path = ['.' pregen_info.file(ii).path( length(path_relative_to)+1 : end )];            
+            pregen_info.param.is_relative_path = true;
+            
+        elseif ispc == 1
+            % If this is run in windows, repeath the search after converting characters in the path to upper cases. 
+            %
+            % Windows is not case sensitive in most cases.
+            % Warning: This is not guranteed. Win 10 can be configured as a case sensitive system to 
+            %          be compatible to WSL. Use with caution.
+            
+            warning('Did not found the input "path_relative_to" from the absolute path. Retry after setting all charaters to upper cases!');
+            
+            tem_pathstr_U = upper(tem_pathstr);
+            path_relative_to_U = upper(path_relative_to);
+            
+            tem_match_ind = strfind( tem_pathstr_U, path_relative_to_U );
+                        
+            if length( tem_match_ind ) == 1 && tem_match_ind == 1
+                pregen_info.file(ii).path = ['.' pregen_info.file(ii).path( length(path_relative_to)+1 : end )];            
+                pregen_info.param.is_relative_path = true;
+            else
+                error('Cannot find the input "path_relative_to" from the absolute path!');
+            end
+            
+        else
+            error('Cannot find the input "path_relative_to" from the absolute path!');
+        end
+        
+    end
+    
+else
+    pregen_info.param.is_relative_path = false;    
+end
+
+%% 
+% =========================================================================
+% # Output
+% =========================================================================
 if ~isempty( output_file_path )
     fprintf('writting into %s \n', output_file_path )
     save( output_file_path, 'pregen_info' );

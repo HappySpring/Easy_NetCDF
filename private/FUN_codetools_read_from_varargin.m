@@ -1,6 +1,7 @@
 function [var, in_struct] = FUN_codetools_read_from_varargin( in_struct, var_name, default_val, is_rm_loadedd_param )
+% [var, in_struct] = FUN_codetools_read_from_varargin( in_struct, var_name, default_val, is_rm_loadedd_param )
 
-if ~exist('is_rm_loadedd_param','var') || isempty( is_rm_loadedd_param );
+if ~exist('is_rm_loadedd_param','var') || isempty( is_rm_loadedd_param )
     is_rm_loadedd_param = true; % this is set to be compatible with some very old codes.
 end
 

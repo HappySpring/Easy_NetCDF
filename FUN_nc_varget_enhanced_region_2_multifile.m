@@ -1,4 +1,4 @@
-function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname )
+function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname, varargin )
 % [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname )
 % 
 % [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( presaved_info, varname, dim_name, dim_limit )
@@ -150,6 +150,12 @@ if ~exist( 'dim_varname', 'var' ) || isempty( dim_varname ) % this only works wh
     dim_varname = dim_name;
 end
 
+[path_relative_to, varargin] = FUN_codetools_read_from_varargin( varargin, 'path_relative_to', [], true );
+
+if ~isempty( varargin )
+    disp(varargin);
+    error( 'Unknown parameters!');
+end
 
 % ### convert dim_name and dim_limit to cell (if they are not yet) --------
 
@@ -178,14 +184,19 @@ end
 %% ### get list of netCDF files and determine the running mode
 
 if isstruct( filelist ) && isfield( filelist, 'var' ) && isfield( filelist, 'file' )
+    % load data from pre-saved data.
+    % This can save some time to load dimensional data from each file. It is 
+    % very useful for reading a subset from a large number of files. 
     is_load_presaved_info = true;
     presaved_info = filelist;
     filepath_list = {presaved_info.file.path};
-
+    
+    % check variable for time
     if ( exist( 'time_var_name', 'var' ) && ~isempty( time_var_name ) ) ||(  exist( 'dim_varname', 'var' ) && ~isequal( dim_varname, dim_name ) ) % dim_varname is set to dim_name by default
         error(' time_var_name & dim_varname should be defined when the pre-saved .mat file is generated! They cannot be defined here!')
     end
     
+    % check name of the dimension to be merged
     if ~exist('merge_dim_name','var') || isempty( merge_dim_name )
        merge_dim_name = presaved_info.merge_dim.name; 
        
@@ -194,6 +205,20 @@ if isstruct( filelist ) && isfield( filelist, 'var' ) && isfield( filelist, 'fil
     else
         error( 'The given merge_dim_name does not match the presaved merge_dim_name!');
     end
+    
+    % check relative path.
+    if isfield( presaved_info, 'param' ) && presaved_info.param.is_relative_path == true
+        if ~isempty( path_relative_to )
+            filepath_list = strcat( path_relative_to, filepath_list );
+        else
+            error('Cannot found the paramter "path_relative_to"');
+        end
+        
+    elseif ~isempty( path_relative_to )
+        error('Input paramter "path_relative_to" is useless since absolute paths are used in the pre-saved cache');
+    end
+        
+    
     
 else
     

@@ -295,20 +295,20 @@ for iv = 1:length(info0.Variables)
     
     % Decided how to download this variable -------------------------------
     if any( strcmp(info0.Variables(iv).Name, dim_limit_var ) ) || isempty(divided_dim_str)
-        is_load_all_at_once = 1;
+        is_load_all_at_once = 1; % This variable will be loaded once for all
     
     elseif ~isempty(var_divided) && ~any( strcmp(info0.Variables(iv).Name, var_divided) )
-        % all data will be loaded once for all
-        is_load_all_at_once = 1;
+        is_load_all_at_once = 1; % This variable will be loaded once for all
         
     else 
         divided_dim = FUN_struct_find_field_ind( VarDim_now, 'Name', divided_dim_str );
         
         if isnan( divided_dim ) || count(divided_dim) ==  1 % nan means this dimension doesn't not exist in the current variable
-            is_load_all_at_once = 1;
+            is_load_all_at_once = 1; % This variable will be loaded once for all
             
         elseif ~isempty(divided_dim_str) && ( any( strcmp(info0.Variables(iv).Name, var_divided )) || isempty(var_divided) )
-            is_load_all_at_once = 0;
+            is_load_all_at_once = 0; % This variable will be loaded piece by piece
+             
         else
             error('E10: unexpected condition!')
         end
