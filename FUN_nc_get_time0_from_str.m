@@ -31,7 +31,7 @@ function [time0, unit_str, unit_to_day] = FUN_nc_get_time0_from_str( time_str )
 
 % -------------------------------------------------------------------------
 % by L. Chi
-% V1.12 2021-06-29: Use datetick (instead of datenum) to handle general data format
+% V1.12 2021-06-29: Use datetime (instead of datenum) to handle general data format
 % V1.11 2021-06-24: add support for other format by "datenum" with its
 %                     default behaviors. Please note that this may lead to 
 %                     errors. And there is a potential bug in the matlab 

@@ -87,6 +87,11 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
 
+% V2.10 by L. Chi
+%          + Call "FUN_nc_varget_enhanced_region_2" to read variables which 
+%            are not assoicated to the dimension to be merged.
+%          + Support dimensionless variables.
+%
 % V2.06 by L. Chi
 %          Update the example.
 % V2.05 by L. Chi
@@ -169,7 +174,7 @@ if ischar( dim_name )
 end
 
 % + `dim_limit` must be a cell.
-if iscell(dim_limit) || isempty( dim_limit );
+if iscell(dim_limit) || isempty( dim_limit )
     %PASS
 elseif all( isnumeric( dim_limit ) )
     if size( dim_limit, 1) == 1 && size( dim_limit, 2) == 2
@@ -264,52 +269,77 @@ end
 N_dim = length( var_dim0 );
 
 % ### get merged variable info for all files ------------------------------
+
 if ~isempty( merge_dim_name )
+    % ---------------------------------------------------------------------
     % find the ind of merged dimension in the requested variable
     ind_merged_dim = find( strcmpi( {var_dim0.Name}, merge_dim_name ) );
-
-    % find the limit and properties of the merged dimension.
-    ind_merged_dim_in_limit = find( strcmpi( dim_name, merge_dim_name ) );
-    if isempty( ind_merged_dim_in_limit )
-        dim_limit_for_merged_var = [-inf inf];
-        dim_varname_for_merged_var = [];
-    else
-        dim_limit_for_merged_var = dim_limit( ind_merged_dim_in_limit );
-        dim_varname_for_merged_var = dim_varname{ ind_merged_dim_in_limit };
-    end
-
-    % get dimension info
-    if is_load_presaved_info == true
-        var_dim_merged       = FUN_nc_varget_sub_genStartCount_from_presaved_data( presaved_info, [], merge_dim_name, dim_limit_for_merged_var );
-        var_dim_merged = [ var_dim_merged(:).var_dim ];
-
-        for ii = 1:length( var_dim_merged )
-            var_dim_merged(ii).value = var_dim_merged(ii).value(:)';
-        end
-    else
-        for ii = 1:length( filepath_list )
-            fn = filepath_list{ii};
-            var_dim_merged(ii) = FUN_nc_varget_sub_genStartCount_from_file( fn, [], merge_dim_name, dim_limit_for_merged_var, time_var_name, dim_varname_for_merged_var );
-            var_dim_merged(ii).value = var_dim_merged(ii).value(:)';
-        end
-    end
-
-    if isnan( dim_varname_for_merged_var ) % The axis at the merged dimension is not given in the file.
-        var_dim_merged(ii).value  = ii * 100 + [1:var_dim_merged(ii).count] * 99 / var_dim_merged(ii).count ;
-    end
-            
-    ind_in_output = nan( length( filepath_list ), 2 );
-    ind_in_output(1,1) = 1;
-    ind_in_output(1,2) = var_dim_merged(1).count;
-
-    for ii = 2:length( var_dim_merged ) 
-        ind_in_output(ii,1) = ind_in_output(ii-1,2) + 1;
-        ind_in_output(ii,2) = ind_in_output(ii,1) +  var_dim_merged(ii).count - 1;
-    end
-
-    Nm = ind_in_output(end, 2); % length in the merged dim.
     
-else 
+    if ~isempty( ind_merged_dim )
+        % The current variable is associated to the dimension to be merged.
+        
+        % find the limit and properties of the merged dimension.
+        ind_merged_dim_in_limit = find( strcmpi( dim_name, merge_dim_name ) );
+        if isempty( ind_merged_dim_in_limit )
+            dim_limit_for_merged_var = [-inf inf];
+            dim_varname_for_merged_var = [];
+        else
+            dim_limit_for_merged_var = dim_limit( ind_merged_dim_in_limit );
+            dim_varname_for_merged_var = dim_varname{ ind_merged_dim_in_limit };
+        end
+
+        % get dimension info
+        if is_load_presaved_info == true
+            var_dim_merged = FUN_nc_varget_sub_genStartCount_from_presaved_data( presaved_info, [], merge_dim_name, dim_limit_for_merged_var );
+            var_dim_merged = [ var_dim_merged(:).var_dim ];
+
+            for ii = 1:length( var_dim_merged )
+                var_dim_merged(ii).value = var_dim_merged(ii).value(:)';
+            end
+        else
+            for ii = 1:length( filepath_list )
+                fn = filepath_list{ii};
+                var_dim_merged(ii)       = FUN_nc_varget_sub_genStartCount_from_file( fn, [], merge_dim_name, dim_limit_for_merged_var, time_var_name, dim_varname_for_merged_var );
+                var_dim_merged(ii).value = var_dim_merged(ii).value(:)';
+            end
+        end
+
+        if isnan( dim_varname_for_merged_var ) % The axis at the merged dimension is not given in the file.
+            var_dim_merged(ii).value  = ii * 100 + [1:var_dim_merged(ii).count] * 99 / var_dim_merged(ii).count ;
+        end
+
+        ind_in_output = nan( length( filepath_list ), 2 );
+        ind_in_output(1,1) = 1;
+        ind_in_output(1,2) = var_dim_merged(1).count;
+
+        for ii = 2:length( var_dim_merged ) 
+            ind_in_output(ii,1) = ind_in_output(ii-1,2) + 1;
+            ind_in_output(ii,2) = ind_in_output(ii,1) +  var_dim_merged(ii).count - 1;
+        end
+
+        Nm = ind_in_output(end, 2); % length in the merged dim.
+        
+    else % ----------------------------------------------------------------
+        % The current variable is **not** associated to the dimension to be merged.
+        % Please note that dimensionless variable will also ends here.
+        
+        fn = filepath_list{1};
+        fprintf('The dimension to be mereged, [%s], does not exist in the specified variable [%s] \n', merge_dim_name, varname)
+        fprintf('The variable [%s] will be read from the first input file:\n', varname)
+        fprintf('%s\n',fn);
+
+        [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2( fn, varname, dim_name, dim_limit, time_var_name, dim_varname );
+
+        return % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    end
+    
+else % --------------------------------------------------------------------
+    % The input parameter "merge_dim_name" is set to empty;
+    % This indicates that the dimension to be merged is not included in the
+    % netcdf file explictly. 
+    % For example, a netcdf file contains monthly mean SST may have
+    % dimensions "lon", "lat" without "time". To read a set of files like
+    % this, you may want to set merge_dim_name=[] to reach here. 
     
     ind_merged_dim = length(var_dim0) + 1;
     
@@ -322,7 +352,6 @@ else
     end
     
     Nm = ind_in_output(end, 2); % length in the merged dim.
-    
     N_dim = N_dim + 1;
     
 end
@@ -332,6 +361,24 @@ end
 % =========================================================================
 % ## load data
 % =========================================================================
+if length( var_dim0 ) == 1 && isempty( var_dim0.Name )
+    % Dimensionless variables ---------------------------------------------
+    
+    size1 = [ 1, Nm ];
+    data_out = nan( [size1, 1] ); % an additional dimension is added to avoid errors when size1 is 1x1.
+
+    for ii = 1:length( filepath_list )
+        
+        fn = filepath_list{ii};
+
+        disp(['Loading ' fn])
+        tem = FUN_nc_varget_enhanced( fn, varname );
+
+        data_out(:, ind_in_output(ii,1):ind_in_output(ii,2))  =  tem;
+    end
+    
+else
+    % varialbes with dimensions -------------------------------------------
     
     size1 =  [var_dim0.count] ;
     size1(ind_merged_dim) = Nm;
@@ -378,9 +425,7 @@ end
         
         data_out(:, ind_in_output(ii,1):ind_in_output(ii,2))  = reshape( tem, Nx, var_dim_merged(ii).count );
     end
-    
-    
-    
+end 
 %%
 % =========================================================================
 % ## output
@@ -388,8 +433,14 @@ end
 
 % ### collect dimensions
 
-for ii = 1:length(var_dim0)
-    out_dim.(var_dim0(ii).value_name) = var_dim0(ii).value;
+if length( var_dim0 ) == 1 && isempty( var_dim0.Name )
+    % dimensionless variable
+    out_dim = [];
+else
+    %diemsional variable
+    for ii = 1:length(var_dim0)
+        out_dim.(var_dim0(ii).value_name) = var_dim0(ii).value;
+    end
 end
 
 if ~isempty( merge_dim_name )

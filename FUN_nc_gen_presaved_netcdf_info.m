@@ -86,7 +86,14 @@ for iv = 1:length( varlist )
     vn = varlist{iv};
     pregen_info.var(iv).Name = vn;
     tem = fn_info.Variables(iv).Dimensions;
-    tem = rmfield( tem, 'Length' );  % aovid confusing results since the length for the merged dim is not true at this point.
+    
+    if ~isempty( tem )
+        tem = rmfield( tem, 'Length' );  % aovid confusing results since the length for the merged dim is not true at this point.
+    else
+        % The code reaches here if the variable does not associated to any
+        % dimension.
+    end
+    
     pregen_info.var(iv).Dimensions = tem;
     
 end

@@ -19,6 +19,8 @@ function var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname,
 % OUTPUT:
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
 % -------------------------------------------------------------------------
+% V1.01 by L. Chi. Return empty structure if no dimension is associated to
+%                  the inquiry variable.
 % V1.00 by L. Chi.  This is extracted from "FUN_nc_varget_enhanced_region_2.m"
 % (L.Chi.Ocean@outlook.com)
 
@@ -55,6 +57,7 @@ end
             var_dim_id(ii)  = netcdf.inqDimID( ncid, dim_name{ii} );
         end
     end
+    
 % ### Set limit for each dimension
 for ii = 1:length( var_dim_id )
     
@@ -124,4 +127,18 @@ for ii = 1:length( var_dim_id )
     end
     
 end
+
+% For dimensionless variables.
+if isempty( var_dim_id )
+    var_dim.Name        = [];
+    var_dim.Length      = nan;
+    var_dim.originalVal = [];
+    var_dim.start       = [];
+    var_dim.count       = [];
+    var_dim.varname     = [];
+    var_dim.value       = [];
+    var_dim.value_name  = [];
+end
+
+
     netcdf.close( ncid );

@@ -50,6 +50,8 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
 
+% V1.22 by L. Chi
+%          Add support for dimensionless variables. 
 % V1.21 By L. Chi,
 %          Edit formats. move dimensional check into an if block
 %          (is_double_check)
@@ -64,12 +66,20 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
         time_var_name = [];
     end
 
-    if ~exist( 'dim_varname', 'var' ) || isempty( dim_varname );
+    if ~exist( 'dim_varname', 'var' ) || isempty( dim_varname )
         dim_varname = dim_name;
     end
 
     is_double_check = true;
     
+%% ## If the variable is demensionless, read it directly and skip the rest part of this function.
+
+    if FUN_nc_is_variable_dimensionless( filename, varname )
+        data = FUN_nc_varget_enhanced( filename, varname );
+        out_dim = [];
+        return % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<        
+    end
+
 %% ## prepare dimensions
 
     var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname, dim_name, dim_limit, time_var_name, dim_varname );    
