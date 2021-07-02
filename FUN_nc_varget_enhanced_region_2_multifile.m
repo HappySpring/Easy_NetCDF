@@ -180,6 +180,8 @@ end
 
 if is_quiet_mode_on
     disp=@(x)1;
+else
+    disp=@(x)builtin('disp',x);
 end
 
 % ### convert dim_name and dim_limit to cell (if they are not yet) --------
@@ -217,7 +219,7 @@ if isstruct( filelist ) && isfield( filelist, 'var' ) && isfield( filelist, 'fil
     filepath_list = {presaved_info.file.path};
     
     % check variable for time
-    if ( exist( 'time_var_name', 'var' ) && ~isempty( time_var_name ) ) ||(  exist( 'dim_varname', 'var' ) && ~isequal( dim_varname, dim_name ) ) % dim_varname is set to dim_name by default
+    if ( ~isempty( time_var_name ) && ~strcmpi( time_var_name, presaved_info.merge_dim.name) ) ||(  exist( 'dim_varname', 'var' ) && ~isequal( dim_varname, dim_name ) ) % dim_varname is set to dim_name by default
         error(' time_var_name & dim_varname should be defined when the pre-saved .mat file is generated! They cannot be defined here!')
     end
     

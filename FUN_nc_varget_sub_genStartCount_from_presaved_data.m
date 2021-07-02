@@ -20,7 +20,10 @@ function filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data( pregen_in
 % OUTPUT:
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
 % -------------------------------------------------------------------------
-% V1.00 by L. Chi.  This is extracted from "FUN_nc_varget_enhanced_region_2.m"
+% V1.01 by L. Chi. Fix a bug
+%                  The function may return error unexpectedly when both 
+%                  both "dim_name" and "dim_limit" are empty
+% V1.00 by L. Chi. This is extracted from "FUN_nc_varget_enhanced_region_2.m"
 % (L.Chi.Ocean@outlook.com)
 
 
@@ -30,7 +33,7 @@ if ischar( dim_name )
     dim_name = {dim_name};   
 end
 
-if ~iscell( dim_limit )
+if ~isempty(dim_limit) && ~iscell( dim_limit )
     dim_limit   = {dim_limit};
 end
 
