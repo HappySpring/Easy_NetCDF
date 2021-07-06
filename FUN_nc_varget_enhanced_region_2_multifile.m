@@ -173,7 +173,7 @@ end
 [is_quiet_mode_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_quiet_mode_on', false );
 
 if ~isempty( varargin )
-    disp(varargin);
+    builtin('disp', varargin);
     error( 'Unknown parameters!');
 end
 
