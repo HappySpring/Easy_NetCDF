@@ -171,6 +171,7 @@ end
 
 [path_relative_to, varargin] = FUN_codetools_read_from_varargin( varargin, 'path_relative_to', []    );
 [is_quiet_mode_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_quiet_mode_on', false );
+[is_log_compact_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_log_compact_on', false ); % do not print skipped files on the screen.
 
 if ~isempty( varargin )
     builtin('disp', varargin);
@@ -426,7 +427,9 @@ else
         
         if ~isempty( merge_dim_name )
             if var_dim_merged(ii).count == 0
+                if is_log_compact_on == false
                 disp(['Skip ' fn]);
+                end
                 continue
             else
                 disp(['Loading ' fn]);

@@ -139,7 +139,7 @@ for ii = 1:length( filepath_list )
     % interface
     fn = filepath_list{ii};
     pregen_info.file(ii).path = fn;    
-    sprintf( '%s \n',fn);
+    fprintf( '%s \n',fn);
     
     % load info
     fn_info = ncinfo(fn) ;
