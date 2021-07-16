@@ -99,6 +99,9 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
 
+% V2.12 by L. Chi
+%          + replace struct by fullfile in generating full path from
+%          pre-saved info.
 % V2.11 by L. Chi
 %          + Add quiet mode
 % V2.10 by L. Chi
@@ -237,7 +240,7 @@ if isstruct( filelist ) && isfield( filelist, 'var' ) && isfield( filelist, 'fil
     % check relative path.
     if isfield( presaved_info, 'param' ) && presaved_info.param.is_relative_path == true
         if ~isempty( path_relative_to )
-            filepath_list = strcat( path_relative_to, filepath_list );
+            filepath_list = fullfile( path_relative_to, filepath_list );
         else
             error('Cannot found the paramter "path_relative_to"');
         end

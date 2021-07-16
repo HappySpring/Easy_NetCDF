@@ -382,7 +382,7 @@ for iv = 1:length(info0.Variables)
             tem_count(divided_dim) = tem_Dcount_list(ig);
             
             % disp
-            disp([ datestr(now) '      ' VarDim_now(divided_dim).Name ': Group ' num2str(ig) ' of ' num2str(tem_N_Dgroup), ...
+            disp([ datestr(now) '      ' VarDim_now(divided_dim).Name ': Block ' num2str(ig) ' of ' num2str(tem_N_Dgroup), ...
                                                                       ', Index ' num2str(tem_start(divided_dim)) ' - ' num2str(tem_start(divided_dim)+tem_count(divided_dim)-1) ' of ' num2str(start(divided_dim)) ' - ' num2str(start(divided_dim)+count(divided_dim)-1) ])
             % read data 
             count_err = 0;
