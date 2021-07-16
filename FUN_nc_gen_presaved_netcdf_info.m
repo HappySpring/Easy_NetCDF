@@ -3,7 +3,8 @@ function pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name
 % This is an internal function called by FUN_nc_varget_enhanced_region_2_multifile
 % Please refer to the comments in "FUN_nc_varget_enhanced_region_2_multifile.m" for input parameters.
 %
-%
+% 2021-07-05 V1.20 by L. Chi. `dim_varname` accepts manually set nuerical array as
+%                  input.
 % 2021-06-29 V1.10 By L. Chi: (partly) support outputting relative path 
 %                               The input "path_relative_to" must be part of the absolute path for each file.
 % xxxx-xx-xx V1.00 by L. Chi (L.Chi.Ocean@outlook.com)
@@ -187,16 +188,26 @@ for ii = 1:length( filepath_list )
         % load axis associated with each dimension
         pregen_info.file(ii).dim(idim).is_time = false;
 
-        if isempty( dim_varname_now ) || ( isnumeric( dim_varname_now ) && isnan( dim_varname_now ) )
+        if isempty( dim_varname_now ) || all( isnumeric( dim_varname_now ) & isnan( dim_varname_now ) )
             pregen_info.file(ii).dim(idim).value = 1 : pregen_info.file(ii).dim(idim).length;
             pregen_info.file(ii).dim(idim).varname = [];
-        elseif strcmpi( dim_varname_now, time_var_name )
+        elseif strcmpi( dim_varname_now, time_var_name ) %The current dim is time
             pregen_info.file(ii).dim(idim).value = FUN_nc_get_time_in_matlab_format( fn, dim_varname_now );
             pregen_info.file(ii).dim(idim).is_time = true;
             pregen_info.file(ii).dim(idim).varname = dim_varname_now;
-        else
+        elseif ischar( dim_varname_now ) % dim_varname_now is the name of a variable associated to this dimension
             pregen_info.file(ii).dim(idim).value   = FUN_nc_varget_enhanced( fn, dim_varname_now );
             pregen_info.file(ii).dim(idim).varname = dim_varname_now;
+        elseif isnumeric( dim_varname_now ) % dim_varname_now contains a manually provded numerical matrx.
+            
+            if length( dim_varname_now ) == pregen_info.file(ii).dim(idim).length
+                pregen_info.file(ii).dim(idim).value   = dim_varname_now;
+                pregen_info.file(ii).dim(idim).varname = dn;
+            else
+                error('The length of input dim_varname does not match the length of the assocated dimension!')
+            end
+        else
+            error('Unexpected dim_varname!');
         end
 
     end

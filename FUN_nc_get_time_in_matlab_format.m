@@ -30,7 +30,7 @@ function tem_time = FUN_nc_get_time_in_matlab_format( file_now,  nc_time_str, va
         [tem_time_ref, tem_unit_str, tem_unit_to_day] = FUN_nc_get_time0_from_str( tem_time_unit );
         
     % convert time into the matlab built-in unit
-        if strcmpi( tem_unit_str, 'months');
+        if strcmpi( tem_unit_str, 'months')
             [yy,mm,dd,HH,MM,SS] = datevec( tem_time_ref );
             
             tem_time = datenum( yy, mm + tem_time, dd, HH,MM,SS );

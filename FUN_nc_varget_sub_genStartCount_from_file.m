@@ -15,10 +15,16 @@ function var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname,
 %           + "dim_varname{1} = nan" indicates that the axis is not defined
 %                not defined by any variable in file. It will be defined 
 %                as 1, 2, 3, ... Nx, where Nx is the length of the dimension.
+%           + dim_varname can also caontain arrays to set the longitude,
+%           latitude, time, etc, manually instead of reading them from the
+%           netcdf file. E.g., dim_varname = { [-82:1/4:-55], [26:1/4:45]};
+%
 % -------------------------------------------------------------------------
 % OUTPUT:
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
 % -------------------------------------------------------------------------
+% V1.02 by L. Chi. `dim_varname` accepts manually set nuerical array as
+%                  input.
 % V1.01 by L. Chi. Return empty structure if no dimension is associated to
 %                  the inquiry variable.
 % V1.00 by L. Chi.  This is extracted from "FUN_nc_varget_enhanced_region_2.m"
@@ -80,16 +86,30 @@ for ii = 1:length( var_dim_id )
         if exist('time_var_name','var') && ~isempty( time_var_name ) &&  strcmp( dim_name_now, time_var_name )
             % The axis is time (with the attribute "units" like " days since 2000-01-01 00:00:00")
             dim_val_now = FUN_nc_get_time_in_matlab_format( filename, dim_varname_now ) ;
+            var_dim(ii).value_name  = dim_varname_now; 
             var_dim(ii).is_time     = true;
+            
         else
             % The axis is not time.
             if isnan( dim_varname_now )
                 % The definition of the axis is not included in the netCDF.
                 dim_val_now = 1 : var_dim(ii).Length;
                 var_dim(ii).value_name  = var_dim(ii).Name ; % value_name is dim_varname_now if it existed, otherwise, value_name is the name of the dimension.
-            else
+                
+            elseif ischar( dim_varname_now ) % dim_varname_now is the name of a variable associated to this dimension
                 dim_val_now = FUN_nc_varget_enhanced( filename, dim_varname_now ) ;
                 var_dim(ii).value_name  = dim_varname_now ; % value_name is dim_varname_now if it existed, otherwise, value_name is the name of the dimension.
+                
+            elseif isnumeric( dim_varname_now ) % dim_varname_now contains a manually provded numerical matrx.
+                if isvector(dim_varname_now) && length( dim_varname_now ) == var_dim(ii).Length
+                    dim_val_now = dim_varname_now ;
+                    var_dim(ii).value_name  = var_dim(ii).Name ; 
+                else
+                    error('The length of input dim_varname does not match the length of the assocated dimension!')
+                end
+                
+            else
+                error('Unexpected dim_varname!');
             end
             var_dim(ii).is_time     = false;
         end
@@ -101,7 +121,7 @@ for ii = 1:length( var_dim_id )
         var_dim(ii).count       = count;
         var_dim(ii).varname     = dim_name_now;
         var_dim(ii).value       = dim_val_now(tem_loc);
-        var_dim(ii).value_name  = dim_varname_now; %
+        
     else
         
         if exist('time_var_name','var') && ~isempty( time_var_name ) &&  strcmp( var_dim(ii).Name, time_var_name )

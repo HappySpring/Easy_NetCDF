@@ -3,6 +3,7 @@ function FUN_nc_easywrite_write_var( filename, var_name, data, varargin )
 % FUN_nc_easywrite_write_var( filename, var_name, data, start, count, stride )
 % Write data into an existing variable
 
+% V1.01 by L. Chi: fix a bug: an error occurred when varargin is not empty.
 % V1.00 by L. Chi
 
 
@@ -36,7 +37,12 @@ varid = netcdf.inqVarID( ncid, var_name );
 
 
 %% ## 2. write into netcdf
-netcdf.putVar( ncid, varid, data, varargin{:} );
+if nargin == 0
+    netcdf.putVar( ncid, varid, data, varargin{:} );
+else
+    netcdf.putVar( ncid, varid, varargin{:}, data );
+
+end
 
 
 %% ## 3. close file

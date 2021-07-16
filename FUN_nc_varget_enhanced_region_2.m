@@ -49,7 +49,12 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
 % 
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
-
+% V1.23 by L. Chi
+%          + The axis associated with a dimension specificed in dim_name
+%          can be provided by a vector in dim_varname from now.
+%            e.g., FUN_nc_varget_enhanced_region_2( fn, 'zeta', {'lon','lat'}, {[-82 -70],[27 45]}, 'time', {lon,lat} );
+%
+%          + set `is_double_check` as false. 
 % V1.22 by L. Chi
 %          Add support for dimensionless variables. 
 % V1.21 By L. Chi,
@@ -70,7 +75,7 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
         dim_varname = dim_name;
     end
 
-    is_double_check = true;
+    is_double_check = false; % this is not necessary anymore. The related codes will be kept for debugging only.
     
 %% ## If the variable is demensionless, read it directly and skip the rest part of this function.
 
@@ -94,24 +99,24 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
     
 %% check dimension 
     if is_double_check
-    for ii = 1:length(var_dim)
+        for ii = 1:length(var_dim)
 
-        if isempty( var_dim(ii).varname ) || all( isnan( var_dim(ii).value_name ) )
-           % Skip
-           continue 
-        end
+            if isempty( var_dim(ii).varname ) || all( isnan( var_dim(ii).value_name ) )
+               % Skip
+               continue 
+            end
 
-        if  var_dim(ii).is_time 
-            dim_list_check = FUN_nc_get_time_in_matlab_format( filename, var_dim(ii).value_name,  var_dim(ii).start, var_dim(ii).count, 1 );
-        else
-            dim_list_check = FUN_nc_varget_enhanced_region(  filename, var_dim(ii).value_name,  var_dim(ii).start, var_dim(ii).count, 1 );
-        end
+            if  var_dim(ii).is_time 
+                dim_list_check = FUN_nc_get_time_in_matlab_format( filename, var_dim(ii).value_name,  var_dim(ii).start, var_dim(ii).count, 1 );
+            else
+                dim_list_check = FUN_nc_varget_enhanced_region(  filename, var_dim(ii).value_name,  var_dim(ii).start, var_dim(ii).count, 1 );
+            end
 
-        if all( dim_list_check == var_dim(ii).value )
-        else
-           error('Dimension doesn''t match!') 
+            if all( dim_list_check == var_dim(ii).value )
+            else
+               error('Dimension doesn''t match!') 
+            end
         end
-    end
     end
 
 %% output
