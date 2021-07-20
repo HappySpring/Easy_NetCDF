@@ -99,6 +99,11 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
 
+% V2.15 by L. Chi
+%          + fix a bug introduced after V2.11: The function may not return 
+%            expected results if "filelist" is a structure and the 
+%            values for a dimension is override manually. 
+%
 % V2.12 by L. Chi
 %          + replace struct by fullfile in generating full path from
 %          pre-saved info.
@@ -353,9 +358,35 @@ if ~isempty( merge_dim_name )
         fprintf('The dimension to be mereged, [%s], does not exist in the specified variable [%s] \n', merge_dim_name, varname)
         fprintf('The variable [%s] will be read from the first input file:\n', varname)
         fprintf('%s\n',fn);
+        
+        if is_load_presaved_info == true
+            
+            % If "fn" is imported from a pre-saved structure, the values
+            % associated to each dimension ("var_dim0.originalVal"), instead 
+            % of the name of each dimension, should be provided as "dim_varname"
+            % in "FUN_nc_varget_enhanced_region_2" to adopt (possible) values
+            % overide manually in "FUN_nc_gen_presaved_netcdf_info.m"
+            % introduced in "eb78fec23979e40e618ef13a2185f4047a950d90"
+            
+            dim_original_values = [];
+            for jj = 1:length(dim_name)
+                idim = find( strcmpi( {var_dim0.Name}, dim_name{jj} ) );
+                
+                if isempty( idim )
+                    dim_original_values{jj} = []; % the current dimension is not associated witht the current variable.
+                else
+                    dim_original_values{jj} = var_dim0(idim).originalVal;
+                end
+            end
+            
+            %data_out = FUN_nc_varget_enhanced_region( fn, varname, nc_start, nc_count, nc_strid );
+            [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2( fn, varname, dim_name, dim_limit, time_var_name, dim_original_values );
 
-        [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2( fn, varname, dim_name, dim_limit, time_var_name, dim_varname );
-
+        else
+            [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2( fn, varname, dim_name, dim_limit, time_var_name, dim_varname );
+            
+        end
+        
         return % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     end
     

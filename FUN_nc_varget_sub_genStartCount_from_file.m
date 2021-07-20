@@ -32,7 +32,7 @@ function var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname,
 
 
 %% ## Set default value
-if ~exist( 'dim_varname', 'var' ) || isempty( dim_varname );
+if ~exist( 'dim_varname', 'var' ) || isempty( dim_varname )
     dim_varname = dim_name;
 end
 
