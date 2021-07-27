@@ -4,6 +4,8 @@ function [start, count, xloc] = FUN_nc_varget_sub_genStartCount( x, xlimit )
 % Generate [start, count] for FUN_nc_varget_enhanced_region(filename,varname,start,counts,stride)
 % xloc is the location of selected x based on xlimit: x(xloc);
 %
+% V1.42 by L. Chi
+%   Return an error if xlimit(1) > xlimit(2).
 % V1.41 by L. Chi
 %   if x is always within xlimit, ignore the monotonic check. 
 %      This is introduced to read some of HYCOM datasets. (e.g., expt_93.0) 
@@ -29,6 +31,10 @@ xlimit = double(xlimit);
 
 if isempty( xlimit )
     xlimit = [-inf inf];
+end
+
+if xlimit(1) > xlimit(2)
+   error('xlimit(2) >= xlimit(1) is required for all dimensions!') 
 end
 
 %

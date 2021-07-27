@@ -12,9 +12,10 @@ function var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname,
 %           + variable defined by this will be loaded into time in matlab format (days since 0000-01-00)
 %      dim_varname   [cell, optional]: name of the variable defining the axis at each dimension.
 %           + by default, each axis is defined by a variable sharing the same name as the dimension. 
-%           + "dim_varname{1} = nan" indicates that the axis is not defined
-%                not defined by any variable in file. It will be defined 
-%                as 1, 2, 3, ... Nx, where Nx is the length of the dimension.
+%           + "dim_varname{1} = nan" will force the dimension assicated with 
+%             an vector defined as 1, 2, 3, ... Nx, where Nx is the length
+%             of the dimension, ingnoring the variable shares the same name
+%             with this dimension (if it exists)
 %           + dim_varname can also caontain arrays to set the longitude,
 %           latitude, time, etc, manually instead of reading them from the
 %           netcdf file. E.g., dim_varname = { [-82:1/4:-55], [26:1/4:45]};

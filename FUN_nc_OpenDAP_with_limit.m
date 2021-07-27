@@ -1,5 +1,5 @@
-function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_var, dim_limit_val, var_download, var_divided, divided_dim_str, Max_Count_per_group, varargin  )
-% FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_var, dim_limit_val, var_download, var_divided, divided_dim_str, Max_Count_per_group  )
+function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_limit_val, var_download, var_divided, divided_dim_str, Max_Count_per_group, varargin  )
+% FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_limit_val, var_download, var_divided, divided_dim_str, Max_Count_per_group  )
 %
 % This will download data by OpenDAP within a selected time-space range.
 % *Notes*: Please be careful of the limits for time. The unit of time
@@ -10,7 +10,7 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_var, dim_lim
 % INPUT: 
 %   filename0 : source of the netcdf file (OpenDAP URL here)
 %   filename1 : Name of output netcdf file
-%   dim_limit_var: which axises you want to set the limit
+%   dim_limit_name: which axises you want to set the limit
 %   dim_limit_val: the limit of each axises
 %   var_download: the variable you'd like to download. [var_download = [] will download all variables.] 
 %   var_divided:  the varialbes need to be downloaded piece by piece in a specific dimension
@@ -22,12 +22,17 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_var, dim_lim
 %   Max_Count_per_group: Max number of points in the divided dimension.
 %
 % Optional parameters:
+% ** details see the "set optional parameters" in codes below **
+%
 %     |  Parameter                    | Default value | note           |
 %     | ------------------------------|---------------|----------------|
+%     |  dim_varname                  | dim_limit_name| Names of variables defining dimensions given in dim_limit_name |
+%     |  time_var_name                |      []       | The Name of the variable describing time |
 %     |  is_auto_chunksize            |     flase     |                |
-%     |  'compressiion_level'         |       1       |                |
-%     |  'is_skip_blocks_with_errors '|     false     |                |
-%     |  'N_max_retry'                |      10       |                |
+%     |  compressiion_level           |       1       |                |
+%     |  is_skip_blocks_with_errors   |     false     |                |
+%     |  N_max_retry                  |      10       |                |
+%     |  var_exclude                  |      []       |                |
 %
 % Output: None
 %
@@ -56,6 +61,13 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_var, dim_lim
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+% By L. Chi, V1.50 2021-07-27: 
+%                             + Switch to "FUN_nc_varget_sub_genStartCount_from_file" to prepare the subsets to be downloaded.  
+%                                 This introduces more flexible ways to set limits at each dimension by a parameter "dim_varname", 
+%                                 which is similar to the way it is used in "FUN_nc_varget_enhanced_region_2" and "FUN_nc_varget_enhanced_region_2_multifile"
+%                                 This also introudces the support for the paramter "time_var_name".     
+%                             + support excluding variables by a parameter "var_exclude". 
+%
 % By L. Chi, V1.41 2021-05-10: Update comments
 % By L. Chi, V1.40 2021-05-04:
 %                             1) A block will be written onto the disk immediately after it is downloaded. 
@@ -85,13 +97,13 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_var, dim_lim
 
 %% 
 % =========================================================================
-% # Input parameters
+% # Set defaults values for mandantory input parameters
 % =========================================================================
 
 % ## set default values ---------------------------------------------------
 
-if ~exist('dim_limit_var','var')
-    dim_limit_var = [];
+if ~exist('dim_limit_name','var')
+    dim_limit_name = [];
 end
 
 if ~exist('dim_limit_val','var')
@@ -115,8 +127,33 @@ if ~exist('Max_Count_per_group','var')
     Max_Count_per_group = inf;
 end
 
-% ## Other optional parameters --------------------------------------------
+%% 
+% =========================================================================
+% # set optional parameters
+% =========================================================================
 
+% + dim_varname [cell, optional] (default: dim_varname = dim_limit_name )
+%           Variables associated with each dimension in `dim_limit_name`:
+%           + by default, each axis is defined by a variable sharing the same name as the dimension. 
+%           + "dim_varname{1} = nan" will force the dimension assicated with 
+%             an vector defined as 1, 2, 3, ... Nx, where Nx is the length
+%             of the dimension, ingnoring the variable shares the same name
+%             with this dimension (if it exists)
+%           + dim_varname can also caontain arrays to set the longitude,
+%           latitude, time, etc, manually instead of reading them from the
+%           netcdf file. E.g., dim_varname = { [-82:1/4:-55], [26:1/4:45]};
+
+    [dim_varname, varargin] =  FUN_codetools_read_from_varargin( varargin, 'dim_varname', dim_limit_name, true );
+
+% + time_var_name (default: [])
+%           + variable defined by this will be loaded into time in matlab format (days since 0000-01-00)
+%           + when time_var_name is defined properly, you can set a
+%           timelimit like [datenum(2020,1,1), datenum(2020,12,31,23,59,59)] without considering the time units.
+%           + This does not affect the output format. In the output file,
+%           the time is still written in the unit as it is in the input file.
+
+    [time_var_name, varargin] =  FUN_codetools_read_from_varargin( varargin, 'time_var_name', [], true );
+    
 % + is_auto_chunksize (default: false)
     % Should the function calculate the chunksize? [default: false]
     % The matlab default chunksize will be used if this is set to false. 
@@ -138,13 +175,16 @@ end
     % max number of re-try before sending errors (is_skip_blocks_with_errors==false) or skipping the current block (is_skip_blocks_with_errors==true)
     [N_max_retry, varargin] =  FUN_codetools_read_from_varargin( varargin, 'N_max_retry', 10, true );
 
-
-
+% + var_exclude [cell, optional] (default: [])
+    [var_exclude, varargin] =  FUN_codetools_read_from_varargin( varargin, 'var_exclude', [], true );
+    
+    if isstring(var_exclude) || ischar(var_exclude)
+       var_exclude = {var_exclude}; 
+    end
+    
 if ~isempty( varargin )
     error('Unkown parameters found!')
 end
-
-
 
 %% Load the original data
 info0 = ncinfo(filename0);
@@ -155,37 +195,43 @@ ncid0 = netcdf.open( filename0, 'NOWRITE' );
 for ii = 1:length(info0.Dimensions)
     
     % decide wehter this dim should be loaded partly.
-    dim_cmp_loc = strcmp( info0.Dimensions(ii).Name, dim_limit_var );
-    
+    dim_cmp_loc = strcmp( info0.Dimensions(ii).Name, dim_limit_name );
+
     if any( dim_cmp_loc )
         % load by part
-        tem = 1:length(dim_limit_var);
-        ij  = tem(dim_cmp_loc);% for dim_limit_var & dim_limit_val
+        ij  = find(dim_cmp_loc);% for dim_limit_name & dim_limit_val
         
-        var_str_now = dim_limit_var{ij};
-        varid_now = netcdf.inqVarID(ncid0, var_str_now ) ;
-        var_now = netcdf.getVar(ncid0, varid_now ) ;
+        dim_name_now = dim_limit_name{ij};
+
+        dim_info_now = FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij} );
         
-        [start, count, ind] = FUN_nc_varget_sub_genStartCount( var_now, dim_limit_val{ij} );
+        %var_str_now = dim_limit_name{ij};
+        %varid_now = netcdf.inqVarID(ncid0, var_str_now ) ;
+        %var_now = netcdf.getVar(ncid0, varid_now ) ;
+        %[start, count, ind] = FUN_nc_varget_sub_genStartCount( var_now, dim_limit_val{ij} );
         
-        info1.Dim(ii).Name        = var_str_now;
-        info1.Dim(ii).Length      = count;
+        info1.Dim(ii).Name        = dim_info_now.Name;
+        %info1.Dim(ii).Length      = dim_info_now.count;
         info1.Dim(ii).MatInd      = ii;  % Location of this variable in the Dim Matrix
-        info1.Dim(ii).originalVal = var_now;
-        info1.Dim(ii).start       = start;
-        info1.Dim(ii).count       = count;
-        info1.Dim(ii).ind         = ind;
+        info1.Dim(ii).originalVal = dim_info_now.originalVal;
+        info1.Dim(ii).start       = dim_info_now.start;
+        info1.Dim(ii).count       = dim_info_now.count;
+        %info1.Dim(ii).ind        = ind;
         info1.Dim(ii).is_seleted  = true;
+        %info1.Dim(ii).is_time     = dim_info_now.is_time; 
+
     else
         
         info1.Dim(ii).Name        = info0.Dimensions(ii).Name;
-        info1.Dim(ii).Length      = info0.Dimensions(ii).Length;
+        %info1.Dim(ii).Length      = info0.Dimensions(ii).Length;
         info1.Dim(ii).MatInd      = ii;
         info1.Dim(ii).originalVal = [];
         info1.Dim(ii).start       = 0;
-        info1.Dim(ii).count       = info1.Dim(ii).Length;
-        info1.Dim(ii).ind         = 1:info1.Dim(ii).Length ;
+        info1.Dim(ii).count       = info0.Dimensions(ii).Length;
+        %info1.Dim(ii).ind         = 1:info1.Dim(ii).Length ;
         info1.Dim(ii).is_seleted  = false;
+        %info1.Dim(ii).is_time     = false;
+
     end
 end
 
@@ -193,7 +239,7 @@ end
 ncid1 = netcdf.create(filename1,'NETCDF4');
 
 for ii = 1:length( info1.Dim )
-    dimID1(ii) = netcdf.defDim(ncid1, info1.Dim(ii).Name , info1.Dim(ii).Length );
+    dimID1(ii) = netcdf.defDim(ncid1, info1.Dim(ii).Name , info1.Dim(ii).count );
 end
 
 % set global ATT
@@ -209,15 +255,22 @@ end
 
 netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), 'Copy Source', filename0 );
 netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), 'Copy Date', datestr(now) );
-for ii = 1:length( dim_limit_var )
-    netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), ['Copy Range-' num2str(ii)], [dim_limit_var{ii} ' ' num2str( dim_limit_val{ii} )] );
+for ii = 1:length( dim_limit_name )
+    netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), ['Copy Range-' num2str(ii)], [dim_limit_name{ii} ' ' num2str( dim_limit_val{ii} )] );
 end
 %% load/write variable
 N_adding_var = 0; % This is the "N_adding_var" time a new varialbe is added to this file.
 
 for iv = 1:length(info0.Variables)
-    if isempty(var_download) || any( strcmp( info0.Variables(iv).Name, var_download ) ) || any( strcmp( info0.Variables(iv).Name, dim_limit_var ) )
+    if isempty(var_download) || any( strcmp( info0.Variables(iv).Name, var_download ) ) || any( strcmp( info0.Variables(iv).Name, dim_limit_name ) ) 
+        if any( strcmp( info0.Variables(iv).Name, var_exclude ) )
+            % Skip this variable, it has been excluded.
+            continue
+        else
+            %Pass
+        end
     else
+        % Skip this variable, it is not selected.
         continue
     end
     
@@ -294,7 +347,7 @@ for iv = 1:length(info0.Variables)
     netcdf.endDef(ncid1)
     
     % Decided how to download this variable -------------------------------
-    if any( strcmp(info0.Variables(iv).Name, dim_limit_var ) ) || isempty(divided_dim_str)
+    if any( strcmp(info0.Variables(iv).Name, dim_limit_name ) ) || isempty(divided_dim_str)
         is_load_all_at_once = 1; % This variable will be loaded once for all
     
     elseif ~isempty(var_divided) && ~any( strcmp(info0.Variables(iv).Name, var_divided) )
