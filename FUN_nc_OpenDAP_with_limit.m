@@ -61,6 +61,8 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+% By L. Chi, V1.60 2021-07-28: Put all operations to source files in try-catch blocks to survive from internet/server errors. 
+%
 % By L. Chi, V1.50 2021-07-27: 
 %                             + Switch to "FUN_nc_varget_sub_genStartCount_from_file" to prepare the subsets to be downloaded.  
 %                                 This introduces more flexible ways to set limits at each dimension by a parameter "dim_varname", 
@@ -186,9 +188,20 @@ if ~isempty( varargin )
     error('Unkown parameters found!')
 end
 
+pause_seconds = 30; % sleep 30 seconds before resume from an error. 
+
 %% Load the original data
-info0 = ncinfo(filename0);
-ncid0 = netcdf.open( filename0, 'NOWRITE' );
+
+% execute ncinfo and netcdf.open in try-catch blocks to avoid
+% server/connection errors.
+
+% info0 = ncinfo(filename0);
+    f_ncinfo = @(x_filename)ncinfo( x_filename );
+    info0 = FUN_codetool_retry( f_ncinfo, filename0, N_max_retry, pause_seconds );
+
+% ncid0 = netcdf.open( filename0, 'NOWRITE' );
+    f_nc_open_nw = @(x_filename)netcdf.open( x_filename, 'NOWRITE' );
+    ncid0 = FUN_codetool_retry( f_nc_open_nw, filename0, N_max_retry, pause_seconds );
 
 %% prepare dimensions
 
@@ -202,8 +215,12 @@ for ii = 1:length(info0.Dimensions)
         ij  = find(dim_cmp_loc);% for dim_limit_name & dim_limit_val
         
         dim_name_now = dim_limit_name{ij};
-
-        dim_info_now = FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij} );
+        
+        % execute the following command in a try-catch block:
+        %   dim_info_now = FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij} );
+        f_nc_genStartCount = @()FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij} );
+        dim_info_now = FUN_codetool_retry( f_nc_genStartCount, [], N_max_retry, pause_seconds );
+        
         
         %var_str_now = dim_limit_name{ij};
         %varid_now = netcdf.inqVarID(ncid0, var_str_now ) ;
@@ -369,16 +386,22 @@ for iv = 1:length(info0.Variables)
     end
     
     % downloading varialbe ================================================
-    varID0 = netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
-    
+    % varID0 = netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
+    f_nc_inqVarID = @()netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
+    varID0 = FUN_codetool_retry( f_nc_inqVarID, [], N_max_retry, pause_seconds );
+        
+        
     if is_load_all_at_once == 1 % -----------------------------------------
         % The varialbe will be loaded completely at once 
         disp([datestr(now) ' downloading ' info0.Variables(iv).Name ])
         if is_var_with_dim
-            var_value = netcdf.getVar( ncid0, varID0, start, count, strid );
+            %var_value = netcdf.getVar( ncid0, varID0, start, count, strid );
+            f_nc_inqVarID_at_once = @()netcdf.getVar( ncid0, varID0, start, count, strid );
         else
-            var_value = netcdf.getVar( ncid0, varID0 );
+            %var_value = netcdf.getVar( ncid0, varID0 );
+            f_nc_inqVarID_at_once = @()netcdf.getVar( ncid0, varID0 );
         end
+        var_value = FUN_codetool_retry( f_nc_inqVarID_at_once, [], N_max_retry, pause_seconds );
         
         % write data into the output file
         netcdf.putVar( ncid1, varID1, var_value);

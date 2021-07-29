@@ -77,6 +77,7 @@ MV.ind_end   = nan( length( filepath_list ), 1 );
 
 
 for ii = 1:length( filepath_list )
+   fprintf('Checking: %s\n', filepath_list{ii} );
    tem = FUN_nc_varget( filepath_list{ii}, merge_dim_name ); 
    MV.all = [ MV.all ; tem(:) ];
    
@@ -117,7 +118,7 @@ ncid0 = netcdf.open( sample_fn, 'NOWRITE' );
 
 % delete variables without any values -------------------------------------
 delete_var = [];
-for iv = 1:length( info0.Variables );
+for iv = 1:length( info0.Variables )
    if isempty( info0.Variables(iv).Dimensions )
         delete_var = [delete_var iv];
    end
@@ -145,7 +146,7 @@ for ii = 1:length(info0.Dimensions)
         
         var_str_now = merge_dim_name;
         varid_now = netcdf.inqVarID(ncid0, var_str_now ) ;
-        var_now = netcdf.getVar(ncid0, varid_now ) ;
+        % var_now = netcdf.getVar(ncid0, varid_now ) ;
                 
         info1.Dim(ii).Name        = var_str_now;
         info1.Dim(ii).Length      = MV.N;
