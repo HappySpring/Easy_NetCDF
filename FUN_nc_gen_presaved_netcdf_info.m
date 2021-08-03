@@ -3,6 +3,11 @@ function pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name
 % This is an internal function called by FUN_nc_varget_enhanced_region_2_multifile
 % Please refer to the comments in "FUN_nc_varget_enhanced_region_2_multifile.m" for input parameters.
 %
+% 2021-08-02 V1.30 By L. Chi. It is possible to ignore certain dimensions
+%                              and varialbes now by the following two
+%                              parameters
+%                                 + ignore_dim_name
+%                                 + ignore_var_name
 % 2021-07-05 V1.20 by L. Chi. `dim_varname` accepts manually set nuerical array as
 %                  input.
 % 2021-06-29 V1.10 By L. Chi: (partly) support outputting relative path 
@@ -35,6 +40,21 @@ pregen_info.merge_dim.name = merge_dim_name;
 % If "path_relative_to" is not empty, the "folder" in the output structure
 % will be replaced by paths relative to "path_relative_to"
 [path_relative_to, varargin] = FUN_codetools_read_from_varargin( varargin, 'path_relative_to', [], true );
+
+% Ignore the following dimensions and variables
+[ignore_dim_name, varargin] = FUN_codetools_read_from_varargin( varargin, 'ignore_dim_name', [], true );
+[ignore_var_name, varargin] = FUN_codetools_read_from_varargin( varargin, 'ignore_var_name', [], true );
+
+if ~isempty( ignore_dim_name ) && ~iscell( ignore_dim_name )
+   ignore_dim_name = {ignore_dim_name}; 
+end
+
+if ~isempty( ignore_var_name ) && ~iscell( ignore_var_name )
+   ignore_var_name = {ignore_var_name}; 
+end
+
+pregen_info.param.ignored_dim = ignore_dim_name;
+pregen_info.param.ignored_var = ignore_var_name;
 
 if ~isempty(varargin)
    disp(varargin)
@@ -80,8 +100,22 @@ fn_info = ncinfo(fn_demo) ;
 varlist = {fn_info.Variables.Name};
 dimlist = {fn_info.Dimensions.Name};
 
-% ## load dimensions name for each variable
+if ~isempty( ignore_dim_name )
+    rm_dim_loc = ismember( dimlist, ignore_dim_name );
+    
+    if any( rm_dim_loc )
+        fprintf('  The following dimension and associated variables will be ignored:\n')
+        fprintf('      Remove dimension: %s \n', dimlist{rm_dim_loc} )
+        dimlist = dimlist(~rm_dim_loc);
+    end
+else
+    % Pass
+    
+    %rm_dim_loc = [];
+end
 
+% ## load dimensions name for each variable
+rm_var_loc = false(size(varlist));
 for iv = 1:length( varlist )
     
     vn = varlist{iv};
@@ -97,8 +131,25 @@ for iv = 1:length( varlist )
     
     pregen_info.var(iv).Dimensions = tem;
     
+    if ( ~isempty( ignore_dim_name ) && ~isempty( tem ) &&  any( ismember( {tem.Name}, ignore_dim_name ) ) ) ...
+            || ( ~isempty(ignore_var_name) && ismember( {vn}, ignore_var_name) )
+        
+        rm_var_loc(iv) = true;
+        fprintf('  The following variables will be ignored since they are associated an ignored dimension:\n')
+        fprintf('      Remove variable: %s \n', vn )
+    end
 end
 iv = [];
+
+if any( rm_var_loc )
+    % the variables will be ingored includes both variables associated ingnored
+    % dimensions and variables listed in "ignore_var_name".
+    %    
+    pregen_info.var(rm_var_loc) = [];  
+    varlist(rm_var_loc) = [];
+else
+    pregen_info.param.ignored_var = [];
+end
 
 % ## find corresponding variable name of each dimension
 % If it cannot be found, and empty name will be allocated.
@@ -144,6 +195,41 @@ for ii = 1:length( filepath_list )
     
     % load info
     fn_info = ncinfo(fn) ;
+    
+    % remove ignored dimensions from "ignore_dim_name".
+    %   Variables assocated to those dimensions will also be ignored. 
+    if ~isempty(ignore_dim_name)
+        rm_dim_loc = ismember( {fn_info.Dimensions.Name}, ignore_dim_name );
+        
+        % remove dimensions to be ignored
+        if any(rm_dim_loc)
+            % remove ignored dimensions
+            fprintf('  The following dimension from the current file is ignored:\n')
+            fprintf('      Ignored dimension: %s \n', fn_info.Dimensions(rm_dim_loc).Name );
+            fn_info.Dimensions(rm_dim_loc) = [];
+        end
+    end
+        
+    % remove variables to be ignored
+    if ~isempty( ignore_dim_name ) || isempty( ignore_var_name )
+        
+        rm_var_loc = false( size( fn_info.Variables ) );
+        
+        for jv = 1:length( fn_info.Variables )
+            tem_dim = fn_info.Variables(jv).Dimensions;
+            
+            if ( ~isempty( ignore_dim_name ) && ~isempty( tem_dim ) &&  any( ismember( {tem_dim.Name}, ignore_dim_name ) ) ) ...
+                    || ( ~isempty(ignore_var_name) && ismember( {fn_info.Variables(jv).Name}, ignore_var_name) )
+                rm_var_loc(jv) = true;
+                fprintf('  The following variables will be ignored since they are associated an ignored dimension:\n')
+                fprintf('      Remove variable: %s \n', fn_info.Variables(jv).Name )
+            end
+        end
+        fn_info.Variables(rm_var_loc) = [];
+        
+    end
+
+    
     
     % ## Check ============================================================
     

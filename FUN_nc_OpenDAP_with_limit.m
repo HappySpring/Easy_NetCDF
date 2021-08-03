@@ -27,7 +27,7 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 %     |  Parameter                    | Default value | note           |
 %     | ------------------------------|---------------|----------------|
 %     |  dim_varname                  | dim_limit_name| Names of variables defining dimensions given in dim_limit_name |
-%     |  time_var_name                |      []       | The Name of the variable describing time |
+%     |  time_var_name                |      []       | Name of the variable describing time |
 %     |  is_auto_chunksize            |     flase     |                |
 %     |  compressiion_level           |       1       |                |
 %     |  is_skip_blocks_with_errors   |     false     |                |
@@ -146,7 +146,10 @@ end
 %           netcdf file. E.g., dim_varname = { [-82:1/4:-55], [26:1/4:45]};
 
     [dim_varname, varargin] =  FUN_codetools_read_from_varargin( varargin, 'dim_varname', dim_limit_name, true );
-
+    if isempty( dim_varname )
+        dim_varname = dim_limit_name;
+    end
+    
 % + time_var_name (default: [])
 %           + variable defined by this will be loaded into time in matlab format (days since 0000-01-00)
 %           + when time_var_name is defined properly, you can set a
