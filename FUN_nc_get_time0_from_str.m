@@ -1,5 +1,5 @@
-function [time0, unit_str, unit_to_day] = FUN_nc_get_time0_from_str( time_str )
-% [time0, unit_str, unit_to_day] = FUN_nc_get_time0_from_str( time_str )
+function [time0, unit_str, unit_to_day, dt] = FUN_nc_get_time0_from_str( time_str )
+% [time0, unit_str, unit_to_day, dt] = FUN_nc_get_time0_from_str( time_str )
 %
 % % Get more information from the units of nc files
 % -------------------------------------------------------------------------
@@ -18,6 +18,7 @@ function [time0, unit_str, unit_to_day] = FUN_nc_get_time0_from_str( time_str )
 %      unit_to_day = 1/24. if the time unit int he netcdf is seconds, 
 %      unit_to_day = 1/24/3600. It would be empty if the unit is 'months' or
 %      'years' since it is not constant in such cases. 
+%   dt: duration in one unit time. 
 % -------------------------------------------------------------------------
 % Example: 
 %
@@ -31,6 +32,10 @@ function [time0, unit_str, unit_to_day] = FUN_nc_get_time0_from_str( time_str )
 
 % -------------------------------------------------------------------------
 % by L. Chi
+
+% V1.19 2021-08-03: + Add dt in the class of duration.
+%                   + add new unit: hour.
+%
 % V1.12 2021-06-29: Use datetime (instead of datenum) to handle general data format
 % V1.11 2021-06-24: add support for other format by "datenum" with its
 %                     default behaviors. Please note that this may lead to 
@@ -44,7 +49,7 @@ function [time0, unit_str, unit_to_day] = FUN_nc_get_time0_from_str( time_str )
 %                     >> datestr(datenum('0015-00-00'))
 %                     >> ans =
 %                         '31-Dec-0014'
-% 
+%
 % V1.10 2020-07-09: use regular expression to detect the time format
 % V1.05 2019-08-24: Add support for msec
 % V1.04 2017-04-16: Add support for minutes
@@ -134,18 +139,36 @@ function [time0, unit_str, unit_to_day] = FUN_nc_get_time0_from_str( time_str )
 
     if strcmp( unit_str, 'msec' )
         unit_to_day = 1/24/3600/1000;
+        dt = milliseconds;
+        
     elseif strcmp( unit_str, 'seconds' )
         unit_to_day = 1/24/3600;
+        dt = seconds;
+        
     elseif strcmp( unit_str, 'minutes' )
         unit_to_day = 1/24/60;
+        dt = minutes;
+        
     elseif strcmp( unit_str, 'hours' )
         unit_to_day = 1/24;
+        dt = hours;
+        
+    elseif strcmp( unit_str, 'hour' )
+        unit_to_day = 1/24;
+        dt = hours;
+        
     elseif strcmp( unit_str, 'days' )
         unit_to_day = 1;
+        dt = days;
+        
     elseif strcmp( unit_str, 'months' )
         unit_to_day = []; %
+        dt = months;
+        
     elseif strcmp( unit_str, 'years' )
         unit_to_day = [];
+        dt = years;
+        
     else
         error('unacceptable unit '); 
     end
