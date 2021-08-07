@@ -104,6 +104,9 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
 
+% V2.16 by L. Chi
+%          + Add an error message if no data can be found within the
+%          required range.
 % V2.15 by L. Chi
 %          + fix a bug introduced after V2.11: The function may not return 
 %            expected results if "filelist" is a structure and the 
@@ -182,6 +185,7 @@ if ~exist( 'dim_varname', 'var' ) || isempty( dim_varname ) % this only works wh
     dim_varname = dim_name;
 end
 
+% ### Optional parameters -------------------------------------------------
 [path_relative_to, varargin] = FUN_codetools_read_from_varargin( varargin, 'path_relative_to', []    );
 [is_quiet_mode_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_quiet_mode_on', false );
 [is_log_compact_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_log_compact_on', false ); % do not print skipped files on the screen.
@@ -190,7 +194,6 @@ if ~isempty( varargin )
     builtin('disp', varargin);
     error( 'Unknown parameters!');
 end
-
 
 if is_quiet_mode_on
     disp=@(x)1;
@@ -258,9 +261,7 @@ if isstruct( filelist ) && isfield( filelist, 'var' ) && isfield( filelist, 'fil
     elseif ~isempty( path_relative_to )
         error('Input paramter "path_relative_to" is useless since absolute paths are used in the pre-saved cache');
     end
-        
-    
-    
+
 else
     
     is_load_presaved_info = false;
@@ -282,7 +283,6 @@ else
     end
 
 end
-
 
 %% 
 % =========================================================================
@@ -459,6 +459,12 @@ else
     
     Nx = prod( size1(1:end-1) );
     data_out = reshape( data_out, Nx, Nm );
+    
+    % check data size.
+    if numel( data_out ) == 0
+       error('No data found within the required range!') 
+    end
+    
     
     for ii = 1:length( filepath_list )
         
