@@ -17,7 +17,7 @@ function data = FUN_nc_varget_enhanced_region(filename, varname, start, counts, 
 % Example
 % data2 = FUN_nc_varget_enhanced( 'TEST.nc', 'tempearture_3D', [ 20, 16, 30],[10, 15, 20], [1, 1, 1]);
 
-%
+% V1.24 by L. Chi, 2021-08-10: filename can be a 1x1 struct (e.g., results from dir('a.nc') )
 % V1.23 by L. Chi, 2018-01-21: Add mask_value
 % V1.22 by L. Chi, 2016-07-30: The function can be called by 2
 % parameters like this: FUN_nc_varget_enhanced_region(filename,varname)
@@ -30,6 +30,17 @@ function data = FUN_nc_varget_enhanced_region(filename, varname, start, counts, 
 
 if ~exist('stride','var') || isempty( stride )
     stride = ones( size( counts ) );
+end
+
+% read path from strucutre (if applicable)
+if isstruct( filename )
+    if isfield( filename, 'folder' ) && isfield( filename, 'name' )
+        filename = fullfile( filename.folder, filename.name );
+    elseif isfield( filename, 'name' )
+        filename = filename.name;
+    else
+        error('Unknown input filename format')
+    end    
 end
 
 ncid = netcdf.open(filename,'NOWRITE');

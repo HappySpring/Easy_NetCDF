@@ -25,6 +25,7 @@ function data = FUN_nc_varget_enhanced(filename,varname,varargin)
 %    In the second case, data2 = data(20,16,30); 
 % ----------------------------------------------------------------------- %
 
+% V1.5  by L. Chi, 2021-08-10: filename can be a 1x1 struct (e.g., results from dir('a.nc') )
 % V1.4  by L. Chi, 2019-06-23: ".'" is used instead of "'"
 % V1.3  by L. Chi, 2018-04-03: Add support for loading variable with
 % datatype "char".
@@ -44,16 +45,30 @@ else
    special_points_list= [];
 end
 
+% read path from strucutre (if applicable)
+if isstruct( filename )
+    if isfield( filename, 'folder' ) && isfield( filename, 'name' )
+        filename = fullfile( filename.folder, filename.name );
+    elseif isfield( filename, 'name' )
+        filename = filename.name;
+    else
+        error('Unknown input filename format')
+    end    
+end
+
 ncid = netcdf.open(filename,'NOWRITE');
+
 varid = netcdf.inqVarID(ncid,varname);
 if is_read_special_points_only == 0
     data = netcdf.getVar(ncid,varid);
-elseif is_read_special_points_only == 1;
+elseif is_read_special_points_only == 1
     
+    data = nan( size(special_points_list,1), 1 );
     for isp = 1:size(special_points_list,1)
        data(isp) = netcdf.getVar(ncid,varid, [special_points_list(isp, :)-1], ones(1,size(special_points_list,2) )   );
     end
-        clear isp
+    clear isp
+    
 end
 % get the format of data ( single or double )
 data_format = whos('data');

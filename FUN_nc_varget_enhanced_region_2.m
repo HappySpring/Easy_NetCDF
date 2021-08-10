@@ -49,6 +49,7 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
 % 
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
+% V1.24 by L. Chi, 2021-08-10: filename can be a 1x1 struct (e.g., results from dir('a.nc') )
 % V1.23 by L. Chi
 %          + The axis associated with a dimension specificed in dim_name
 %          can be provided by a vector in dim_varname from now.
@@ -76,6 +77,17 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
     end
 
     is_double_check = false; % this is not necessary anymore. The related codes will be kept for debugging only.
+    
+    % read path from strucutre (if applicable)
+    if isstruct( filename )
+        if isfield( filename, 'folder' ) && isfield( filename, 'name' )
+            filename = fullfile( filename.folder, filename.name );
+        elseif isfield( filename, 'name' )
+            filename = filename.name;
+        else
+            error('Unknown input filename format')
+        end
+    end
     
 %% ## If the variable is demensionless, read it directly and skip the rest part of this function.
 

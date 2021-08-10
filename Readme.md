@@ -14,14 +14,14 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
 
 + load variables
   - Correct scales, offsets, missing values automatically 
-  - Load time in matlab format (days since 0000-01-00 00:00:00)
-  - Load a subset of a variable by specifying the longitude, latitude, time, etc. instead of indexes in a N-D array. 
+  - Load time in "datenum" format (days since 0000-01-00 00:00:00)
+  - Load a subset of a variable by specifying the longitude, latitude, time, etc., directly. 
   - Load variable from multiple files automatically
-  - Load dimensional information from a cache file, which can speed up the codes significantly when it reads a large datasets from multiple files.
+  - Save/load dimensional information to/from a cache file, which can improve the performance significantly when it reads from a large number of files.
 
 + File operations
-  - Extract a subset of a NetCDF file into a separate one.
-  - Flexible Download via OpenDAP
+  - Extract a subset of a NetCDF file to a new one.
+  - Download netcdf files via OpenDAP easily and reliably.
     * support large datasets, variable can be downloaded block by block
     * Retry automatically after interruptions. 
   - Merge files by time
@@ -32,7 +32,7 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
 
 ### Know problems
 
-+ Do not support groups. It should not be hard to add this. However, all files I use in my research come without groups. So there is not plan to add this feature.
++ This toolbox does not support groups. And there is not plan to add this feature in near future.
 
 -----------------------------------------------
 
@@ -58,13 +58,13 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
 
 ### How to install this to matlab environment
 
-You need to add this to the searching path of your Matlab. It can be done by two ways:
+You need to add this to the searching path of your Matlab. The subfolders (`private`, `Documents_and_demo`, `Archive` should not be added to the searching path.) It can be done by two ways:
 
-#### If you use a GUI version: 
+#### If you have GUI access to MatLAB : 
 
 Click "Home tab> Set Path". It will open a dialog for setting the path. Then, click "Add Folder...", add the root path of this package (the folder contains a lot of functions, including `FUN_nc_varget.m`), then click "Save" near the bottom of the dialog.  
 
-#### If you use a command line environment
+#### If you are in a command line environment:
 
 + Method 1 (recommended):
 
