@@ -18,7 +18,7 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 %                 you try to donwloading too large data at once. A solution
 %                 for this is to download data piece by piece
 %   divided_dim_str: which dim you'd like to download piece by piece (e.g., 'time', or 'depth')
-%       divided_dim0 = []  means all varialbes will be downloaded completely at once.
+%       divided_dim_str = []  means all varialbes will be downloaded completely at once.
 %   Max_Count_per_group: Max number of points in the divided dimension.
 %
 % Optional parameters:
@@ -28,8 +28,8 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 %     | ------------------------------|---------------|----------------|
 %     |  dim_varname                  | dim_limit_name| Names of variables defining dimensions given in dim_limit_name |
 %     |  time_var_name                |      []       | Name of the variable describing time |
-%     |  is_auto_chunksize            |     flase     |                |
-%     |  compressiion_level           |       1       |                |
+%     |  is_auto_chunksize            |     false     |                |
+%     |  compression_level           |       1       |                |
 %     |  is_skip_blocks_with_errors   |     false     |                |
 %     |  N_max_retry                  |      10       |                |
 %     |  var_exclude                  |      []       |                |
@@ -61,6 +61,7 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+% By L. Chi, V1.61 2021-08-16: correct a typo ("compressiion_level" -> "compression_level")
 % By L. Chi, V1.60 2021-07-28: Put all operations to source files in try-catch blocks to survive from internet/server errors. 
 %
 % By L. Chi, V1.50 2021-07-27: 
@@ -165,9 +166,15 @@ end
     % This function will not copy the chunksize from the source files now.
     [is_auto_chunksize, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_chunksize', false, true );
 
-% + compressiion_level (default: 1)
-    % compresson_level (0: no compression) [default: 1 - minimal compression];
-    [compressiion_level, varargin]=  FUN_codetools_read_from_varargin( varargin, 'compressiion_level', 1, true );
+% + compression_level (default: 1)
+    % compresson_level (0: no compression) [default: 1 - minimal compression]
+    [compression_level, varargin]=  FUN_codetools_read_from_varargin( varargin, 'compression_level', 1, true );
+    % correct a type( "compressiion_level" -> "compression_level")
+    % the following codes are added to work with the old versions using "compressiion_level"
+    [tem, varargin]=  FUN_codetools_read_from_varargin( varargin, 'compressiion_level', [], true );
+    if ~isempty(tem)
+        compression_level = tem;
+    end
 
 % + is_skip_blocks_with_errors (default: false)
     % is_skip_blocks_with_errors = true: If a block fails more than 5 times,
@@ -345,7 +352,7 @@ for iv = 1:length(info0.Variables)
     end
     
     % Setup compression
-    netcdf.defVarDeflate( ncid1, varID1, true, true, compressiion_level );%compression level-1 basic
+    netcdf.defVarDeflate( ncid1, varID1, true, true, compression_level );%compression level-1 basic
     
     % set chunk size (not necessary for non-dimensional var)
     if is_auto_chunksize && is_var_with_dim

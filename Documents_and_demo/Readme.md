@@ -36,7 +36,7 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
 -----------------------------------------------
 
 ### 1.4 File Structure 
-    
+
 | Path      |  Notes |
 | ----      |  ----  |
 | ./        | Functions for current version |
@@ -53,7 +53,7 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
 + `FUN_nc_OpenDAP_with_limit`                 : Download via OpenDAP
 
 
------------------------------------------------- 
+------------------------------------------------
 ### 1.5 How to use this
 
 You need to add this to the searching path of your Matlab. It can be done by two ways:
@@ -94,6 +94,7 @@ Click "Home tab> Set Path". It will open a dialog for setting the path. Then, cl
 + variable - 2
 
     
+
 *Please note that the above structure is a simplifed version and does not cover everything. Please check [here](https://www.unidata.ucar.edu/software/netcdf/) for more details.
 
 
@@ -137,8 +138,9 @@ ncdisp('Demo_SST_2001.nc')
                            _FillValue   = -999
                            add_offset   = -273.15
                            scale_factor = 0.01
-    
-    
+
+
+​    
 
 ----
 ## 2. Read data from netcdf file(s)
@@ -181,9 +183,10 @@ shading interp
       Name        Size                Bytes  Class    Attributes
     
       data      144x73x12            504576  int32              
-    
-    
-    
+
+
+​    
+​    
 
 
 ![png](output_5_1.png)
@@ -215,15 +218,16 @@ caxis([-2 36])
 min(data(:))
 ```
 
-    
+
     ans =
     
       int32
     
        -999
-    
-    
-    
+
+
+​    
+​    
 
 
 ![png](output_7_1.png)
@@ -242,8 +246,8 @@ shading interp
 caxis([-2 36])
 ```
 
-    
-    
+
+​    
 
 
 ![png](output_9_1.png)
@@ -252,7 +256,7 @@ caxis([-2 36])
 #### 2.1.2 `FUN_nc_varget_enhanced`: Apply scales, add_offsets and _FillValues
 
  **`data = FUN_nc_varget( filename, varname );`**
- 
+
 + `off_set` will be corrected
 + `scale` will be corrected
 + `missing values` will be replaced by nan
@@ -282,9 +286,10 @@ shading interp
       Name        Size                 Bytes  Class     Attributes
     
       data      144x73x12            1009152  double              
-    
-    
-    
+
+
+​    
+​    
 
 
 ![png](output_12_1.png)
@@ -341,18 +346,20 @@ cbar = colorbar;
 shading interp
 ```
 
-    
+
     nc_start =
     
         27    42     0
-    
-    
+
+
+​    
     nc_count =
     
         37    23     1
-    
-    
-    
+
+
+​    
+​    
 
 
 ![png](output_14_1.png)
@@ -361,7 +368,7 @@ shading interp
 #### 2.2.2 `FUN_nc_varget_enhanced_region_2`: specify the region by longitude, latitude, ...
 
  **`% [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname, dim_name, dim_limit, [time_var_name], [dim_varname] );`**    
- 
+
  **Please use "FUN_nc_varget_enhanced_region_2_multifile" to replace this one.**
 
 + Load a part of the domain
@@ -391,8 +398,8 @@ shading interp
      dim_varname={'lon','lat'}
      varname='sst'
      [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( fn, 'sst', dim_name, dim_limit, time_var_name, dim_varname );
-     ```
-   
+    ```
+  
    - "dim_varname{1} = nan" indicates that the axis is not defined by any variables in file. Thus, it will be defined as 1, 2, 3, ... Nx, where Nx is the length of the dimension.    
 
 ##### OUTPUT
@@ -419,8 +426,8 @@ shading interp
 title(datestr(out_dim.time))
 ```
 
-    
-    
+
+​    
 
 
 ![png](output_16_1.png)
@@ -447,8 +454,8 @@ axis equal
 %title(datestr(out_dim.time))
 ```
 
-    
-    
+
+​    
 
 
 ![png](output_18_1.png)
@@ -473,28 +480,28 @@ axis equal
                                
                 It can also be a cell array contain paths of files,
                    or a char matrix, each raw of which contains one path.
-
+    
      varname   [char]: name of the variable
-
+    
      dim_limit_str   [cell]: name of dimensions, like {'lon','lat'}. Dimensions with customed limits must be listed here here. Other dimensions are optional.
               
      dim_limit_limit [cell]: limits of dimensions, like {[-85 -55], [30 45]}.
-
+    
      merge_dim_name [string]: name of the dimension in which the variables 
                 from different files will be concatenated. If merge_dim_name is
                 empty, the variable will be concatenated after its last
                 dimension.
-
+    
                 + Example 1: if you want to read gridded daily
                   temperature given in [lon, lat, depth, time] from a set of
                   files, and each file contains temperature in one day,
                   the merge_dim_name should be 'time'. 
-
+    
                 + Example 2: if you want to read gridded daily temperature given in
                   [lon, lat, depth], in which time is not given
                   explicitly in each file, you can leave merge_dim_name
                   empty.
-
+    
      time_var_name [char, optional]: name of the time axis
           + variable defined by this will be loaded into time in "matlab units" (days since 0000-01-00)
           + This is helpful for setting timelimit in a easy way, avoiding
@@ -505,7 +512,7 @@ axis equal
             timelimit as [46 47] when time_var_name is empty. However, you
             should set timelimit as [datenum(2000,2,15),
             datenum(2000,2,16)] if the tiem_var_name is set to "ob_time".
-
+    
      dim_varname   [cell, optional]: name of the variable defining the axis at each dimension.
           + by default, each axis is defined by a variable sharing the same name as the dimension. 
           + "dim_varname{1} = nan" indicates that the axis is not defined
@@ -543,15 +550,16 @@ dim_varname = [];
     Skip E:\matlab toolboxs added\M_FUN_Easy_NetCDF\Documents_and_demo\Demo_SST_2008.nc
     Skip E:\matlab toolboxs added\M_FUN_Easy_NetCDF\Documents_and_demo\Demo_SST_2009.nc
     Skip E:\matlab toolboxs added\M_FUN_Easy_NetCDF\Documents_and_demo\Demo_SST_2010.nc
-    
-    
+
+
+​    
 
 
 ```matlab
 filelist
 ```
 
-    
+
     filelist = 
     
       10x1 struct array with fields:
@@ -562,16 +570,17 @@ filelist
         bytes
         isdir
         datenum
-    
-    
-    
+
+
+​    
+​    
 
 
 ```matlab
 filelist(1)
 ```
 
-    
+
     ans = 
     
       struct with fields:
@@ -582,9 +591,10 @@ filelist(1)
           bytes: 150033
           isdir: 0
         datenum: 7.3831e+05
-    
-    
-    
+
+
+​    
+​    
 
 
 ```matlab
@@ -613,15 +623,15 @@ filelist = ['Demo_SST_2001.nc'
             'Demo_SST_2010.nc'];
 ```
 
-    
-    
+
+​    
 
 
 ```matlab
 out_dim
 ```
 
-    
+
     out_dim = 
     
       struct with fields:
@@ -629,35 +639,38 @@ out_dim
          lon: [144x1 double]
            y: [1x73 double]
         time: [1x18 double]
-    
-    
-    
+
+
+​    
+​    
 
 
 ```matlab
 datestr( out_dim.time(1) )
 ```
 
-    
+
     ans =
     
         '01-Dec-2001'
-    
-    
-    
+
+
+​    
+​    
 
 
 ```matlab
 datestr( out_dim.time(end) )
 ```
 
-    
+
     ans =
     
         '01-May-2003'
-    
-    
-    
+
+
+​    
+​    
 
 
 ```matlab
@@ -667,9 +680,10 @@ whos data
       Name        Size                 Bytes  Class     Attributes
     
       data      144x73x18            1513728  double              
-    
-    
-    
+
+
+​    
+​    
 
 
 ```matlab
@@ -679,8 +693,8 @@ shading interp
 axis equal
 ```
 
-    
-    
+
+​    
 
 
 ![png](output_31_1.png)
@@ -711,8 +725,9 @@ dim_varname    = {'lon','lat','time'}; % This is to force the function to read v
     Skip E:\matlab toolboxs added\M_FUN_Easy_NetCDF\Documents_and_demo\Demo_SST_2008.nc
     Skip E:\matlab toolboxs added\M_FUN_Easy_NetCDF\Documents_and_demo\Demo_SST_2009.nc
     Skip E:\matlab toolboxs added\M_FUN_Easy_NetCDF\Documents_and_demo\Demo_SST_2010.nc
-    
-    
+
+
+​    
 
 
 ```matlab
@@ -724,8 +739,8 @@ axis equal
 title(sprintf('Mean SST between %s and %s', datestr( out_dim.time(1),'mmm yyyy'), datestr(out_dim.time(end),'mmm yyyy')))
 ```
 
-    
-    
+
+​    
 
 
 ![png](output_34_1.png)
@@ -755,11 +770,11 @@ title(sprintf('Mean SST between %s and %s', datestr( out_dim.time(1),'mmm yyyy')
      Max_Count_per_group: Max number of points in the divided dimension.   
 
  Optional parameters:
- 
+
      |  Parameter                    | Default value | note           |
      | ------------------------------|---------------|----------------|
-     |  is_auto_chunksize            |     flase     |                |
-     |  'compressiion_level'         |       1       |                |
+     |  is_auto_chunksize            |     false     |                |
+     |  'compression_level'         |       1       |                |
      |  'is_skip_blocks_with_errors '|     false     |                |
      |  'N_max_retry'                |      10       |                |
 
@@ -919,8 +934,9 @@ ncdisp(filename0)
                            scale_factor  = 0.001
                            add_offset    = 0
                            NAVO_code     = 32
-    
-    
+
+
+​    
 
 
 ```matlab
@@ -941,8 +957,8 @@ filename1 = 'HYCOM_test2.nc';
  depthlimit = [0 100];
 ```
 
-    
-    
+
+​    
 
 
 ```matlab
@@ -969,7 +985,7 @@ Max_Count_per_group = 5;
  FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_var, dim_limit_val, var_download, var_divided, divided_dim_str, Max_Count_per_group  )
 ```
 
-    
+
     divided_dim_str =
     
         'depth'
@@ -983,8 +999,9 @@ Max_Count_per_group = 5;
     31-May-2021 15:36:46      depth: Group 2 of 4, Index 5 - 9 of 0 - 19
     31-May-2021 15:36:46      depth: Group 3 of 4, Index 10 - 14 of 0 - 19
     31-May-2021 15:36:46      depth: Group 4 of 4, Index 15 - 19 of 0 - 19
-    
-    
+
+
+​    
 
 
 ```matlab
@@ -1095,9 +1112,10 @@ q_pcolor( out_dim.lon, out_dim.lat, squeeze(data(:,:,1,1))')
                CData: [88x76 double]
     
       Use GET to show all properties
-    
-    
-    
+
+
+​    
+​    
 
 
 ![png](output_41_1.png)
@@ -1117,7 +1135,7 @@ q_pcolor( out_dim.lon, out_dim.lat, squeeze(data(:,:,1,1))')
      compatibility_mode: 
                 compatibility_mode = 1: write netCDF in 'CLOBBER'; Compression would be disabled.
                 compatibility_mode = 0: write netCDF in 'NETCDF4'.
- 
+
 ##### Output: None
 
 
@@ -1149,7 +1167,7 @@ compatibility_mode = 0;
 strvcat( filelist(:).name )
 ```
 
-    
+
     ans =
     
       10x22 char array
@@ -1164,9 +1182,10 @@ strvcat( filelist(:).name )
         'Merge_Demo_SST_2008.nc'
         'Merge_Demo_SST_2009.nc'
         'Merge_Demo_SST_2010.nc'
-    
-    
-    
+
+
+​    
+​    
 
 
 ```matlab
@@ -1199,8 +1218,9 @@ FUN_nc_merge( input_dir, filelist, output_fn, merge_dim_name, compatibility_mode
     Loading from .\Merge_Demo_SST_2008.nc
     Loading from .\Merge_Demo_SST_2009.nc
     Loading from .\Merge_Demo_SST_2010.nc
-    
-    
+
+
+​    
 
 
 ```matlab
@@ -1245,8 +1265,9 @@ ncdisp(output_fn)
                            _FillValue   = -999
                            add_offset   = -273.15
                            scale_factor = 0.01
-    
-    
+
+
+​    
 
 ### 3.3 FUN_nc_merge_save_mean
 
@@ -1275,7 +1296,7 @@ list_var_excluded = [];
 filelist
 ```
 
-    
+
     filelist = 
     
       10x1 struct array with fields:
@@ -1286,9 +1307,10 @@ filelist
         bytes
         isdir
         datenum
-    
-    
-    
+
+
+​    
+​    
 
 
 ```matlab
@@ -1326,8 +1348,9 @@ FUN_nc_merge_save_mean( input_dir, filelist, output_fn, merge_dim_name, compatib
     Loading from .\Merge_Demo_SST_2008.nc
     Loading from .\Merge_Demo_SST_2009.nc
     Loading from .\Merge_Demo_SST_2010.nc
-    
-    
+
+
+​    
 
 
 ```matlab
@@ -1368,8 +1391,9 @@ ncdisp( output_fn )
                Size:       144x73x1
                Dimensions: lon,y,time
                Datatype:   double
-    
-    
+
+
+​    
 
 
 ```matlab
@@ -1383,8 +1407,8 @@ cbar = colorbar;
 set( get(cbar, 'ylabel'),'string','Temp (\circC)')
 ```
 
-    
-    
+
+​    
 
 
 ![png](output_50_1.png)
@@ -1435,8 +1459,8 @@ FUN_nc_easywrite_enhanced( filename, dim_name, dim_length, varname, dimNum_of_va
 %                       {lon_node,lat_node,lon_cell,lat_cell,sst},'This is an example');
 ```
 
-    
-    
+
+​    
 
 
 ```matlab
@@ -1470,8 +1494,9 @@ ncdisp(filename)
                Size:       21x1
                Dimensions: depth
                Datatype:   double
-    
-    
+
+
+​    
 
 *[`ncwriteschema`](https://www.mathworks.com/help/matlab/ref/ncwriteschema.html) would be a better choice to write a more complex NetCDF file from structures.
 
