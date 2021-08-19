@@ -13,6 +13,24 @@ function pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name
 % 2021-06-29 V1.10 By L. Chi: (partly) support outputting relative path 
 %                               The input "path_relative_to" must be part of the absolute path for each file.
 % xxxx-xx-xx V1.00 by L. Chi (L.Chi.Ocean@outlook.com)
+%
+%% 
+% =========================================================================
+% # Example
+% =========================================================================
+%     filelist       = dir('Demo_*.nc');
+%     merge_dim_name = 'time'; % merge data in "time" dimension.
+%     dim_name       = { 'lon', 'y', 'time' }; % In the demo files, the meridional dimension is named as "y".
+%     dim_varname    = {'lon','lat','time'}; % This is to force the function to read values for the meridional dimension from the variable "lat". 
+%     time_var_name  = 'time'; % convert values in "time" to matlab units (days since 0000-01-00 00:00). This is optional
+% 
+%     output_file_path = 'Presaved_info_demo.mat';
+% 
+%     % Please note that **absolute** file paths are saved in the generated file. If you moved the data, you need to run this again
+%     pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path );
+%     
+%     % with relative path
+%     pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path, 'path_relative_to', pwd );
 
 %% 
 % =========================================================================

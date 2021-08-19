@@ -104,6 +104,12 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
 
+% V2.17 by L. Chi
+%          + fix a bug in comparing `dim_name` and `dim_varname`, which may
+%              lead to an error unexpected if one of them is [] and the
+%              other one is {[]}.
+%          + default value for `is_log_compact_on` is changed to `true`.
+%               
 % V2.16 by L. Chi
 %          + Add an error message if no data can be found within the
 %          required range.
@@ -186,9 +192,9 @@ if ~exist( 'dim_varname', 'var' ) || isempty( dim_varname ) % this only works wh
 end
 
 % ### Optional parameters -------------------------------------------------
-[path_relative_to, varargin] = FUN_codetools_read_from_varargin( varargin, 'path_relative_to', []    );
-[is_quiet_mode_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_quiet_mode_on', false );
-[is_log_compact_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_log_compact_on', false ); % do not print skipped files on the screen.
+[path_relative_to, varargin] = FUN_codetools_read_from_varargin(  varargin, 'path_relative_to', []    );
+[is_quiet_mode_on, varargin] = FUN_codetools_read_from_varargin(  varargin, 'is_quiet_mode_on', false );
+[is_log_compact_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_log_compact_on', true ); % do not print skipped files on the screen.
 
 if ~isempty( varargin )
     builtin('disp', varargin);
@@ -204,11 +210,21 @@ end
 % ### convert dim_name and dim_limit to cell (if they are not yet) --------
 
 % + `dim_name` must be a cell.
-if ischar( dim_name )
+% Note: this is different from "iscell".
+if ischar( dim_name ) || isstring(dim_name) 
     if size( dim_name, 1) == 1
         dim_name = { dim_name };
     else
         error('E31!')
+    end
+end
+
+% + `dim_varname` must be a cell.
+if ischar( dim_varname ) || isstring(dim_varname) 
+    if size( dim_varname, 1) == 1
+        dim_varname = { dim_varname };
+    else
+        error('E31b!')
     end
 end
 
@@ -236,7 +252,7 @@ if isstruct( filelist ) && isfield( filelist, 'var' ) && isfield( filelist, 'fil
     filepath_list = {presaved_info.file.path};
     
     % check variable for time
-    if ( ~isempty( time_var_name ) && ~strcmpi( time_var_name, presaved_info.merge_dim.name) ) ||(  exist( 'dim_varname', 'var' ) && ~isequal( dim_varname, dim_name ) ) % dim_varname is set to dim_name by default
+    if ( ~isempty( time_var_name ) && ~strcmpi( time_var_name, presaved_info.merge_dim.name) ) ||(  ~isempty( dim_varname ) && ~isequal( dim_varname, dim_name ) ) % dim_varname is set to dim_name by default
         error(' time_var_name & dim_varname should be defined when the pre-saved .mat file is generated! They cannot be defined here!')
     end
     
