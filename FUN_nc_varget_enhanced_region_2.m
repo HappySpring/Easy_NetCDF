@@ -72,6 +72,14 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
         time_var_name = [];
     end
 
+    if ~exist( 'dim_name', 'var' ) || isempty( dim_name )
+        dim_name = [];
+    end
+
+    if ~exist( 'dim_limit', 'var' ) || isempty( dim_limit )
+        dim_limit = [];
+    end
+    
     if ~exist( 'dim_varname', 'var' ) || isempty( dim_varname )
         dim_varname = dim_name;
     end
