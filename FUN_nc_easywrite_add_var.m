@@ -28,6 +28,8 @@ function FUN_nc_easywrite_add_var( filename, var_dim_str, var_kind, var_name, da
 % OUTPUT:
 %   N/A
 % -------------------------------------------------------------------------
+% V1.10 by L. Chi: Call "FUN_nc_defVar_datatypeconvert" before defining
+%                   file format (If/A);
 % V1.00 by L. Chi (L.Chi.Ocean@outlook.com)
 
 %% debug
@@ -68,6 +70,10 @@ else
     % ok
 end
 
+if ~iscell( var_dim_str )
+    var_dim_str = {var_dim_str};
+end
+
 %% 1. open the netcdf
 % cid = netcdf.create(filename, mode)
 % mode
@@ -92,6 +98,7 @@ end
     if var_is_exist
         varid = netcdf.inqVarID( ncid, var_name ); 
     else
+        var_kind = FUN_nc_defVar_datatypeconvert(var_kind);
         varid = netcdf.defVar( ncid, var_name, var_kind,  var_dim_id  );
     end
     
