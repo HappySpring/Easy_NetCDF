@@ -4,6 +4,11 @@ function [start, count, xloc] = FUN_nc_varget_sub_genStartCount( x, xlimit )
 % Generate [start, count] for FUN_nc_varget_enhanced_region(filename,varname,start,counts,stride)
 % xloc is the location of selected x based on xlimit: x(xloc);
 %
+% V1.43 by L. Chi
+%   Extend the feature introduced in v1.41
+%   Even if x is not monotonic, a warning message, instead of an errow, will
+%      be triggered if x is monotonic within `xlimit`
+%   Like v1.41, this is introduced to override some bugs in HYCOM data (e.g, exp 93.0)
 % V1.42 by L. Chi
 %   Return an error if xlimit(1) > xlimit(2).
 % V1.41 by L. Chi
@@ -53,7 +58,30 @@ else
        warning('x is not monotonic, however, data will still be loaded since the entire domain is within the required limit! Please be careful about the output' )
        return
    else
-       error('x must be monotonic.') 
+       
+       ck_tem_ind = find( x >= xlimit(1) & x <= xlimit(2) );
+       
+       if all( diff(ck_tem_ind) == 1 ) 
+           
+           % Skip the error if the data is monotonic within the required limit.
+           % This is introduced from reading HYCOM data (exp 93.0)
+           
+           if all( diff( x(ck_tem_ind) ) > 0 )
+                is_x_decrese = 0;
+           
+           elseif all( diff( x(ck_tem_ind) ) < 0 )
+                is_x_decrese = 1;
+                x = x(end:-1:1);
+           else
+               error('Unexpected value!');
+           end
+           
+           warning(['x is not monotonic, however, it is monotonic within the inquire limit! Plase check its raw values!']);
+           
+       else          
+           % x must be monotonic within the required limit.
+           error('x must be monotonic.');
+       end
    end
 end
 
@@ -81,7 +109,7 @@ else
     tem2 = ( x - xlimit(2) ); 
     tem2( tem2>0 ) = nan; 
     
-    if all(isnan( tem2 ));
+    if all(isnan( tem2 ))
         % all x is larger than xlimit(2)
         end_loc = nan;
     else
@@ -92,7 +120,7 @@ else
 end
 
 % 
-if isnan( start_loc ) | isnan( end_loc )
+if isnan( start_loc ) || isnan( end_loc )
     % x is completely out of the range defined by xlimit 
     start = nan;
     count = 0;
@@ -107,7 +135,7 @@ end
 
 % additional steps for decreasing x ---------------------------------------
 if is_x_decrese == 1
-    start =  length(x) -  end_loc  ;
+    start =  length(x) - end_loc  ;
     xloc  = start+1 : start+count;
 end
 % -------------------------------------------------------------------------
