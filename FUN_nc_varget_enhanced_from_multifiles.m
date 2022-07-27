@@ -64,7 +64,7 @@ var_size1( dim_ind ) = MV.N;
 is_1D = length(var_size1) == 2 && any( var_size1 == 1 );
 var_size2 = var_size1;
 
-if dim_ind == length( var_size1 ) || is_1D;
+if dim_ind == length( var_size1 ) || is_1D
     % ok
 else
     error('The merged dim must be the last dimension. Other conditions are not supported yet')
@@ -81,7 +81,7 @@ out_var = nan( NX, MV.N ) ;
 out_sourcefile_ind = nan( 1, MV.N );
 
 %% load/write variable
-    for ii = 1:length( filelist );
+    for ii = 1:length( filelist )
         disp(['Loading from ' fullfile( input_dir, filelist(ii).name ) ])
         out_var(:, MV.ind_start(ii): MV.ind_end(ii)) = reshape( FUN_nc_varget_enhanced( fullfile( input_dir, filelist(ii).name ), var_name ), NX, [] );
         out_sourcefile_ind( MV.ind_start(ii): MV.ind_end(ii) ) = ii;

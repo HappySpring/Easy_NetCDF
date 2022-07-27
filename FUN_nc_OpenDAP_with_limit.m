@@ -61,6 +61,9 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+% By L. Chi, V1.62 2022-07-27: fix a bug: Some old codes will create a large nan matrix before downloading a large dataset no matter whether  
+%                                "divided_dim_str" is set or not. The nan matrix is may lead to an out-of-memory error and it is useless. 
+%                                Related codes have been commented and will be removed in a later version. 
 % By L. Chi, V1.61 2021-08-16: correct a typo ("compressiion_level" -> "compression_level")
 % By L. Chi, V1.60 2021-07-28: Put all operations to source files in try-catch blocks to survive from internet/server errors. 
 %
@@ -421,22 +424,22 @@ for iv = 1:length(info0.Variables)
         % The data will be donwloaded peice by piece by piece according to the last dim. 
 
         disp([datestr(now) ' downloading ' info0.Variables(iv).Name ])
-        if all( size(count) == 1 ) % in case of count = 5 instead of [5 6 7 8]
-            var_value = nan(count,1);
-        else
-            var_value = nan(count);
-        end
+        %if all( size(count) == 1 ) % in case of count = 5 instead of [5 6 7 8]
+        %    var_value = nan(count,1);
+        %else
+        %    var_value = nan(count);
+        %end
         divided_dim = FUN_struct_find_field_ind( VarDim_now, 'Name', divided_dim_str );
         
         % make the divided_dim as the last dim.
-         [var_value, tem_ind_reverse] = FUN_dim_move_to_end(var_value, divided_dim );
-        tem_size  = size( var_value );
-            % check
-            if count(divided_dim) == tem_size(end) 
-            else
-               error('dimension error') 
-            end
-        var_value = reshape( var_value, [], count(divided_dim) );
+        % [var_value, tem_ind_reverse] = FUN_dim_move_to_end(var_value, divided_dim );
+        %tem_size  = size( var_value );
+        %    % check
+        %    if count(divided_dim) == tem_size(end) 
+        %    else
+        %       error('dimension error') 
+        %    end
+        % var_value = reshape( var_value, [], count(divided_dim) );
         
         
         % prepare for loading the index by groups

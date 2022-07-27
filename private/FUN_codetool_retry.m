@@ -65,7 +65,7 @@ while count_err <= N_max_retry
         count_err = count_err + 1;
         
         fprintf(' \n' );
-        disp(['Err, retry count: ' num2str( count_err )] );
+        warning(['Err, retry count: ' num2str( count_err )] );
         
         fprintf('Wait for %.2f seconds ... \n', pause_seconds );
         pause(pause_seconds) %retry after 30 seconds
@@ -73,7 +73,7 @@ while count_err <= N_max_retry
         fprintf('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n' );
         
         if count_err == N_max_retry
-            fprintf('>>>>>> Reach N_max_retry(=%i), stop <<<<<< \n', N_max_retry)
+            warning('>>>>>> Reach N_max_retry(=%i), stop <<<<<< \n', N_max_retry)
             % This will return an error message by default
             [varargout{1:nargout}] = else_fun();
         end
