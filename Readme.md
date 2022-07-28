@@ -1,11 +1,10 @@
 # Easy Netcdf Toolbox
 
-
 ## 1. Introduction
 
 This is a set of [matlab](https://www.mathworks.com) functions to make it easier for oceanographers to handle large sets of [NetCDF](https://www.unidata.ucar.edu/software/netcdf/) files. The functions are built on the low-level Matlab [NetCDF library package](https://www.mathworks.com/help/matlab/network-common-data-form.html?s_tid=CRUX_lftnav).
 
-### highlighted Features
+### Highlighted Features
 
 + Load varialbes in a customed region across multiple files quickly.
 + Enhanced feature for downloadeding NetCDF files via OpenDAP.
@@ -13,6 +12,7 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
 ### Features
 
 + load variables
+  
   - Correct scales, offsets, missing values automatically 
   - Load time in "datenum" format (days since 0000-01-00 00:00:00)
   - Load a subset of a variable by specifying the longitude, latitude, time, etc., directly. 
@@ -20,6 +20,7 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
   - Save/load dimensional information to/from a cache file, which can improve the performance significantly when it reads from a large number of files.
 
 + File operations
+  
   - Extract a subset of a NetCDF file to a new one.
   - Download netcdf files via OpenDAP easily and reliably.
     * support large datasets, variable can be downloaded block by block
@@ -28,6 +29,7 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
   - Merge files by time (save mean values)
 
 + write NetCDF files
+  
   - Write simple NetCDF files quickly. (The support for writting NetCDF files is not the coral propose of this toolbox. Please use the  Matlab [NetCDF library package](https://www.mathworks.com/help/matlab/network-common-data-form.html?s_tid=CRUX_lftnav) for writting complex files.
 
 ### Know problems
@@ -36,7 +38,7 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
 
 -----------------------------------------------
 
-### File Structure 
+### File Structure
 
 | Path                 | Notes                                                 |
 | -------------------- | ----------------------------------------------------- |
@@ -53,21 +55,20 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
 + `FUN_nc_get_time_in_matlab_format`          : Read time variable into matlab unit (`days since 0000-01-00 00:00`)
 + `FUN_nc_OpenDAP_with_limit`                 : Download via OpenDAP
 
-
 ------------------------------------------------
 
 ### How to install this to matlab environment
 
 You need to add this to the searching path of your Matlab. The subfolders (`private`, `Documents_and_demo`, `Archive` should not be added to the searching path.) It can be done by two ways:
 
-#### If you have GUI access to MatLAB : 
+#### If you have GUI access to MatLAB :
 
 Click "Home tab> Set Path". It will open a dialog for setting the path. Then, click "Add Folder...", add the root path of this package (the folder contains a lot of functions, including `FUN_nc_varget.m`), then click "Save" near the bottom of the dialog.  
 
 #### If you are in a command line environment:
 
 + Method 1 (recommended):
-
+  
   ```
   addpath('/path/to/Easy_netcdf/');
   savepath
@@ -86,8 +87,6 @@ Several functions in this package were written for this purpose, all of which, e
 
 ### 2.1 Read a variable from one NetCDF file
 
-
-
 #### 2.1.1 Read data in its original type and values
 
  **`data = FUN_nc_varget( filename, varname );`**
@@ -100,12 +99,13 @@ Several functions in this package were written for this purpose, all of which, e
 
 + Loaded data will keep its original type as in the netcdf file.
 
-
 ##### INPUT
+
 + filename: path to a specific netcdf file     
 + varname : name of the variable to be read     
 
 ##### OUTPUT
+
 + data: values read from the netcdf file. 
 
 ##### Example
@@ -113,8 +113,6 @@ Several functions in this package were written for this purpose, all of which, e
 ```matlab
 data = FUN_nc_varget( 'Demo_SST_2001.nc', 'sst');
 ```
-
-
 
 #### 2.1.2  Apply scales, add_offsets and _FillValues to the raw data
 
@@ -128,10 +126,12 @@ This is the recommended command for loading one variable from one file.
 + Data will be converted to `double`.
 
 ##### INPUT
+
 + filename: path to a specific netcdf file     
 + varname : name of the variable to be read     
 
 ##### OUTPUT
+
 + data: values read from the netcdf file. 
 
 ##### Example
@@ -139,8 +139,6 @@ This is the recommended command for loading one variable from one file.
 ```matlab
 data = FUN_nc_varget_enhanced( 'Demo_SST_2001.nc', 'sst');  
 ```
-
-
 
 ### 2.2 Read a subset of a variable from one netcdf file
 
@@ -155,14 +153,15 @@ data = FUN_nc_varget_enhanced( 'Demo_SST_2001.nc', 'sst');
 + Loaded data will be converted to `double`
 
 ##### INPUT
+
 + filename: path to a specific netcdf file     
 + varname : name of the variable to be read     
 + start, count, stride: same as [this document for `netcdf.getVar`](https://www.mathworks.com/help/matlab/ref/netcdf.getvar.html)
-##### OUTPUT
+  
+  ##### OUTPUT
 + data: values read from the netcdf file. 
 
 ##### example
-
 
 ```matlab
 % parameters
@@ -184,9 +183,7 @@ nc_stride= [1, 1, 1];
 
 % load data
 data = FUN_nc_varget_enhanced_region( fn, 'sst', nc_start, nc_count, nc_stride);
-
 ```
-
 
 #### 2.2.2 Specify the subset boundary by longitude, latitude, ...
 
@@ -201,18 +198,26 @@ data = FUN_nc_varget_enhanced_region( fn, 'sst', nc_start, nc_count, nc_stride);
 + Loaded data will be converted to `double`.
 
 ##### INPUT
+
 + filename  [char]: name of the NetCDF file (e.g., 'temp.nc')       
+
 + varname   [char]: name of the variable (e.g., 'sst' or 'ssh')    
+
 + dim_name  [cell]: name of dimensions related to the variable spcified above, like {'lon'}, {'lon','lat'}, {'lon', 'lat', 'depth, 'time'}. Dimensions with customed limits must be listed here here. Other dimensions are optional.
+
 + dim_limit [cell]: limits of dimensions in a cell. (e.g., {[-85 -55 ], [-inf inf]}). Please provide limits in the same order as they are listed in `dim_name`.
+
 + time_var_name [char, optional]: name of the variable for time.    
+  
   - **If this is not empty, the limit for time in `dim_limit` can be given in a "matlab units" (days since 0000-01-00 00:00) or created by `datenum`.**
   - If this is not empty, the time in `out_dim` will be given in "matlab units" (days since 0000-01-00 00:00).
 
 + dim_varname   [cell, optional]: name of the variable defining the axis at each dimension.    
-  - by default, each axis is defined by a variable sharing the same name. For example, the axis `lon` should be accompanied by a variable named `lon`. In such a case, the `dim_varname` should be left empty.
-  - If the axis is defined by a variable with a different name, the name of the variable should be specified manually here. For example, the meridional dimension in 'Demo_SST_2001.nc' is named "y". However, the latitude is defined by a variable `lat`. In such a situation: 
   
+  - by default, each axis is defined by a variable sharing the same name. For example, the axis `lon` should be accompanied by a variable named `lon`. In such a case, the `dim_varname` should be left empty.
+  
+  - If the axis is defined by a variable with a different name, the name of the variable should be specified manually here. For example, the meridional dimension in 'Demo_SST_2001.nc' is named "y". However, the latitude is defined by a variable `lat`. In such a situation: 
+    
     ```matlab
      fn = 'Demo_SST_2001.nc'
      dim_name={'lon','y'}; 
@@ -222,16 +227,16 @@ data = FUN_nc_varget_enhanced_region( fn, 'sst', nc_start, nc_count, nc_stride);
      varname='sst'
      [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( fn, 'sst', dim_name, dim_limit, time_var_name, dim_varname );
     ```
-  
-   - "dim_varname{1} = nan" indicates that the axis is not defined by any variables in file. Thus, it will be defined as 1, 2, 3, ... Nx, where Nx is the length of the dimension.    
+    
+    - "dim_varname{1} = nan" indicates that the axis is not defined by any variables in file. Thus, it will be defined as 1, 2, 3, ... Nx, where Nx is the length of the dimension.    
 
 ##### OUTPUT
+
 + out_dim  : dimension info (e.g., longitude, latitude, if applicable)    
 + data     : data extracted from the given netcdf file.     
   + When `time_var_name ` is not empty, the corresponding variable in `out_dim` is converted to the same format as `datenum`. However, this unit conversion will never be applied to the output variable `data`. If you want to read the time variable itself, please use `FUN_nc_get_time_in_matlab_format`.
 
 ##### example 1: Read May 2001 SST between 110W-20W, 15N-70N
-
 
 ```matlab
 fn            = 'Demo_SST_2001.nc';
@@ -250,12 +255,9 @@ shading interp
 title(datestr(out_dim.time))
 ```
 
-
-
 ##### example 2: Read SST between 180W-180E, 0N-50N in the second month of 2001
 
 dim_varname{2} is set to nan to read the second record in time. 
-
 
 ```matlab
 fn            = 'Demo_SST_2001.nc';
@@ -274,9 +276,6 @@ axis equal
 %title(datestr(out_dim.time))
 ```
 
-
-
-
 ### 2.3 <mark>**Read a variable from multiple Netcdf files**</mark>
 
  **`[ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );`**    
@@ -289,18 +288,19 @@ axis equal
 + Loaded data will be converted to `double`.
 
 ##### INPUT:
+
      filelist  [struct array]: name and folder of the NetCDF file
                 filelist must include 2 attributes, name and folder. For   
                 each element of filelist (e.g. the ith one), the full path
                 will be generated by fullfile( filelist(ith).folder, filelist(ith).name)
-                               
+    
                 It can also be a cell array contain paths of files,
                    or a char matrix, each raw of which contains one path.
     
      varname   [char]: name of the variable
     
      dim_limit_str   [cell]: name of dimensions, like {'lon','lat'}. Dimensions with customed limits must be listed here here. Other dimensions are optional.
-              
+    
      dim_limit_limit [cell]: limits of dimensions, like {[-85 -55], [30 45]}.
     
      merge_dim_name [string]: name of the dimension in which the variables 
@@ -336,13 +336,11 @@ axis equal
                as 1, 2, 3, ... Nx, where Nx is the length of the dimension.
 
 ##### OUTPUT:
+
      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
      data     : data extracted from the given netcdf file.  
 
-
-
 ##### Example 1: Read SST from Dec 2001 to May 2003
-
 
 ```matlab
 filelist       = dir('Demo_*.nc');
@@ -369,9 +367,10 @@ filelist = {    'Demo_SST_2001.nc'
     'Demo_SST_2008.nc'
     'Demo_SST_2009.nc'
     'Demo_SST_2010.nc'};
-
 ```
+
 or char array like this
+
 ```
 filelist = ['Demo_SST_2001.nc'
             'Demo_SST_2002.nc'
@@ -385,10 +384,7 @@ filelist = ['Demo_SST_2001.nc'
             'Demo_SST_2010.nc'];
 ```
 
-
-
 ##### Example 2: Read SST from Dec 2001 to Nov 2003 in Northwest Atlantic
-
 
 ```matlab
 filelist       = dir('Demo_*.nc');
@@ -432,10 +428,7 @@ The dimensional information can be generated by `FUN_nc_gen_presaved_netcdf_info
     presaved_info = presaved_info.pregen_info;
 
     [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( presaved_info, varname, dim_name, dim_limit);
-
 ```
-
-
 
 ## 3. Download files and merge files
 
@@ -448,41 +441,40 @@ The dimensional information can be generated by `FUN_nc_gen_presaved_netcdf_info
 + Download data piece by piece.
 + Download a subset of the original file.
 
-##### INPUT: 
+##### INPUT:
+
      filename0     : source of the netcdf file (OpenDAP URL here)    
      filename1     : Name of output netcdf file    
      dim_limit_var : which axises you want to set the limit    
      dim_limit_val : the limit of each axises    
      var_download  : the variable you'd like to download. [var_download = [] will download all variables.]    
-     
+    
      var_divided   : the varialbes need to be downloaded piece by piece in a specific dimension. In many cases, OpenDAP will end up with no response if you try to donwloading too large data at once. A solution for this is to download data piece by piece 
-     
+    
     divided_dim_str: which dim you'd like to download piece by piece (e.g., 'time', or 'depth'). divided_dim_str = []  means all varialbes will be downloaded completely at once.   
-     
+    
      Max_Count_per_group: Max number of points in the divided dimension.   
 
 ##### Optional parameters:
 
-| Parameter                  | Default value  | note                                                         |
-| -------------------------- | -------------- | ------------------------------------------------------------ |
+| Parameter                  | Default value  | note                                                           |
+| -------------------------- | -------------- | -------------------------------------------------------------- |
 | dim_varname                | dim_limit_name | Names of variables defining dimensions given in dim_limit_name |
-| time_var_name              | []             | Name of the variable describing time                         |
-| is_auto_chunksize          | false          | Calculate chunk size by a function in this package (beta)    |
-| compression_level          | 1              |                                                              |
-| is_skip_blocks_with_errors | false          |                                                              |
-| N_max_retry                | 10             |                                                              |
-| var_exclude                | []             |                                                              |
+| time_var_name              | []             | Name of the variable describing time                           |
+| is_auto_chunksize          | false          | Calculate chunk size by a function in this package (beta)      |
+| compression_level          | 1              |                                                                |
+| is_skip_blocks_with_errors | false          |                                                                |
+| N_max_retry                | 10             |                                                                |
+| var_exclude                | []             |                                                                |
 
 ##### Output
-    N/A
 
+    N/A
 
  Notice: To recongnize the axis correctly, there must be one variable
  named as by the axis! Assign a variable to a specific axis is not supported yet. 
 
-
 ##### Example 1: download a subset of HYCOM data from its OpenDAP server
-
 
 ```matlab
 % HYCOM dataset at an OpenDAP server
@@ -490,16 +482,16 @@ filename0 = 'http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_19.1/2012';
 
 % output filename
 filename1 = 'HYCOM_test2.nc';
- 
+
 % calculate time limits
  timelimit  = [datenum(2012,1,1) datenum(2012,1,3)];
- 
+
  time = FUN_nc_varget(filename0,'time');
  time_unit = FUN_nc_attget(filename0,'time','units');
  [time0, unit_str, unit_to_day] = FUN_nc_get_time0_from_str( time_unit );
- 
+
  timelimit  = (timelimit - time0)/unit_to_day ;
- 
+
 % set limits
  lonlimit = [-76 -70 ];
  latlimit = [32 39];
@@ -510,10 +502,10 @@ filename1 = 'HYCOM_test2.nc';
 
 % variable to be downloaded
  var_download = {'water_temp','lon','lat','depth','time'}; % empty indicates downloading all variables
- 
+
 % Variables that should be downloaded block by block
  var_divided  = {'water_temp'};
- 
+
 % which dim you'd like to download block by block (e.g., 'time', or 'depth')
 divided_dim_str = 'depth'
 
@@ -523,13 +515,12 @@ Max_Count_per_group = 5;
  FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_var, dim_limit_val, var_download, var_divided, divided_dim_str, Max_Count_per_group  )
 ```
 
-
 ### 3.2 Merge multiple netCDF files in time (`FUN_nc_merge`)
 
 `FUN_nc_merge( input_dir, filelist, output_fn, merge_dim_name, compatibility_mode )`
 
+##### INPUT:
 
-##### INPUT: 
      input_dir: The folder in which all input netcdf given by "filelist" is located
      filelist : the list of files which will be merged. This should be generated by matlab built-in command: `dir`.      
                 This function will merge the netcdf files following the order given in this variable. Please make sure this variable has been resorted properly.
@@ -551,7 +542,6 @@ N/A
 
 #### Example
 
-
 ```matlab
 % input_dir: path for the folder containing the files
     input_dir = '.';
@@ -559,7 +549,7 @@ N/A
     filelist  = dir(fullfile(input_dir,'Merge_Demo*.nc'));
 % output filename
     output_fn = 'Merged_Output.nc';
-    
+
 % name of the demension to be merged.
 merge_dim_name = 'time';
 
@@ -573,11 +563,9 @@ strvcat( filelist(:).name )
 FUN_nc_merge( input_dir, filelist, output_fn, merge_dim_name, compatibility_mode )
 ```
 
-
 ### 3.3 FUN_nc_merge_save_mean
 
 FUN_nc_merge_save_mean( input_dir, filelist, output_fn, merge_dim_name, compatibility_mode, list_var_excluded )
-
 
 ```matlab
 % input_dir: path for the folder containing the files
@@ -586,7 +574,7 @@ FUN_nc_merge_save_mean( input_dir, filelist, output_fn, merge_dim_name, compatib
     filelist  = dir(fullfile(input_dir,'Merge_Demo*.nc'));
 % Output filename
     output_fn = 'Merged_Output_mean.nc';
-    
+
 % Name of the demension to be merged.
     merge_dim_name = 'time';
 
@@ -602,13 +590,14 @@ FUN_nc_merge_save_mean( input_dir, filelist, output_fn, merge_dim_name, compatib
 FUN_nc_merge_save_mean( input_dir, filelist, output_fn, merge_dim_name, compatibility_mode, list_var_excluded );
 ```
 
-
 ## 4. Write Netcdf Files
 
 ### 4.1 `FUN_nc_easywrite_enhanced`
+
 FUN_nc_easywrite_enhanced( filename, dim_name, dim_length, varname, dimNum_of_var, data, global_str_att )
 
 ##### INPUT
+
      filename [char]: name of the output netcdf file (e.g., 'test.nc')
      dim_name [cell]: names of dimensions (e.g., {'lon','lat'}
      dim_length [array]: length of each dimension (e.g., [ 360, 180 ] )
@@ -617,25 +606,21 @@ FUN_nc_easywrite_enhanced( filename, dim_name, dim_length, varname, dimNum_of_va
      data [cell]: values for each variable (e.g., {lon,lat,sst,ssh})
      global_str_att: global attribute
 
-
-
 ### Optional paramaters
 
-| Parameter                  | Default value  | note                                                         |
-| -------------------------- | -------------- | ------------------------------------------------------------ |
+| Parameter                  | Default value  | note                                                           |
+| -------------------------- | -------------- | -------------------------------------------------------------- |
 | dim_varname                | dim_limit_name | Names of variables defining dimensions given in dim_limit_name |
-| time_var_name              | []             | Name of the variable describing time                         |
-| is_auto_chunksize          | false          |                                                              |
-| compressiion_level         | 1              |                                                              |
-| is_skip_blocks_with_errors | false          |                                                              |
-| N_max_retry                | 10             |                                                              |
-| var_exclude                | []             |                                                              |
+| time_var_name              | []             | Name of the variable describing time                           |
+| is_auto_chunksize          | false          |                                                                |
+| compressiion_level         | 1              |                                                                |
+| is_skip_blocks_with_errors | false          |                                                                |
+| N_max_retry                | 10             |                                                                |
+| var_exclude                | []             |                                                                |
 
-##### OUTPUT 
+##### OUTPUT
 
      N/A
-
-
 
 ```matlab
 % ---- generate random data ----
@@ -663,9 +648,6 @@ FUN_nc_easywrite_enhanced( filename, dim_name, dim_length, varname, dimNum_of_va
 %                       {lon_node,lat_node,lon_cell,lat_cell,sst},'This is an example');
 ```
 
-
-
-
 *[`ncwriteschema`](https://www.mathworks.com/help/matlab/ref/ncwriteschema.html) would be a better choice to write a more complex NetCDF file from structures.
 
 ### 4.2 Other functions for writting a netcdf file
@@ -674,8 +656,6 @@ FUN_nc_easywrite_enhanced( filename, dim_name, dim_length, varname, dimNum_of_va
 + `FUN_nc_easywrite_add_att`: add an attribute to an existing variable in an existing netcdf file.
 + `FUN_nc_easywrite`: write one variable into a new netcdf file. 
 + `FUN_nc_easywrite_write_var`: replace values of an existing variable in an existing netcdf file.
-
-
 
 ----
 

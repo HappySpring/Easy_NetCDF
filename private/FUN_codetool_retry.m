@@ -3,6 +3,7 @@ function varargout = FUN_codetool_retry( fun_hand, param, N_max_retry, pause_sec
 %
 % Execute a command and retry if an error occurred
 %
+%
 % INPUT:
 %    fun_hand      : function handle
 %    param         : parameters for fun_hand
@@ -12,6 +13,10 @@ function varargout = FUN_codetool_retry( fun_hand, param, N_max_retry, pause_sec
 % OUTPUT:
 %    Same as the regular output from fun_hand
 
+% V1.01 by L. Chi (L.Chi.Ocean@outlook.com)
+%    Update counting strategy for retry
+%    Fix a bug in handling "else_fun"
+%
 % V1.00 by L. Chi (L.Chi.Ocean@outlook.com)
 
 % For debug: 
@@ -66,18 +71,31 @@ while count_err <= N_max_retry
         
         fprintf(' \n' );
         warning(['Err, retry count: ' num2str( count_err )] );
-        
-        fprintf('Wait for %.2f seconds ... \n', pause_seconds );
-        pause(pause_seconds) %retry after 30 seconds
-        
-        fprintf('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n' );
-        
-        if count_err == N_max_retry
+         
+        if count_err >= N_max_retry %0 ">=" is adopted in case N_max_retry is set to 0.
             warning('>>>>>> Reach N_max_retry(=%i), stop <<<<<< \n', N_max_retry)
             % This will return an error message by default
-            [varargout{1:nargout}] = else_fun();
+            tem_n_out_elsefun = nargout(else_fun);
+            
+            if tem_n_out_elsefun > 0
+                [varargout{1:tem_n_out_elsefun}] = else_fun();
+            else
+                else_fun();
+            end
+            
+        else % sleep for a while before next try.
+            
+            fprintf('Wait for %.2f seconds ... \n', pause_seconds );
+            pause(pause_seconds) %retry after 30 seconds
+            
+            fprintf('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n' );
+            
         end
         
     end
+end
+
+if ~exist('varargout','var') 
+    varargout = {[]};
 end
             

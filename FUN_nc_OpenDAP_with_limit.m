@@ -29,10 +29,12 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 %     |  dim_varname                  | dim_limit_name| Names of variables defining dimensions given in dim_limit_name |
 %     |  time_var_name                |      []       | Name of the variable describing time |
 %     |  is_auto_chunksize            |     false     |                |
-%     |  compression_level           |       1       |                |
+%     |  compression_level            |       1       |                |
 %     |  is_skip_blocks_with_errors   |     false     |                |
 %     |  N_max_retry                  |      10       |                |
 %     |  var_exclude                  |      []       |                |
+%     |  pause_seconds                |      30       |                |
+%     | is_skip_out_of_limit_without_error | false    | With the default value (false), this function returns an error if no data can be found within the required range |
 %
 % Output: None
 %
@@ -61,6 +63,9 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+% By L. Chi, V1.63 2022-07-28:
+%                             add new parameter: "is_skip_out_of_limit_without_error"
+%                             "pause_seconds" is an optional input parameter now.
 % By L. Chi, V1.62 2022-07-27: fix a bug: Some old codes will create a large nan matrix before downloading a large dataset no matter whether  
 %                                "divided_dim_str" is set or not. The nan matrix is may lead to an out-of-memory error and it is useless. 
 %                                Related codes have been commented and will be removed in a later version. 
@@ -197,11 +202,18 @@ end
        var_exclude = {var_exclude}; 
     end
     
-if ~isempty( varargin )
-    error('Unkown parameters found!')
-end
+% + pause_seconds [cell, optional] (default: 30)
+%     sleep sometiem (30 seconds by default) before resume from an error. 
+    [pause_seconds, varargin] =  FUN_codetools_read_from_varargin( varargin, 'pause_seconds', 30, true );
+        
+% + is_skip_out_of_limit_without_error [logical] (default: false)
+    [is_skip_out_of_limit_without_error, varargin] =  FUN_codetools_read_from_varargin( varargin, 'is_skip_out_of_limit_without_error', false, true );
+          
+    
+    if ~isempty( varargin )
+        error('Unkown parameters found!')
+    end
 
-pause_seconds = 30; % sleep 30 seconds before resume from an error. 
 
 %% Load the original data
 
@@ -264,6 +276,20 @@ for ii = 1:length(info0.Dimensions)
 
     end
 end
+
+%% Any data found within the required range? 
+if any( isnan([info1.Dim(:).start]) & [ info1.Dim(:).count  ] == 0 )
+    if is_skip_out_of_limit_without_error
+        disp(['No data can be found within the required range ... Output file (' filename1 ') will be created!'])
+        return
+    else
+        error('No data can be found within the required range')
+    end
+else
+    % pass
+end
+
+
 
 %% open new file and write dimensions
 ncid1 = netcdf.create(filename1,'NETCDF4');
