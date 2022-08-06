@@ -35,7 +35,7 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 %     |  var_exclude                  |      []       |                |
 %     |  pause_seconds                |      30       |                |
 %     | is_skip_out_of_limit_without_error | false    | With the default value (false), this function returns an error if no data can be found within the required range |
-%
+%     | fun_handle_retry_too_many_times|     []       |                |              
 % Output: None
 %
 %
@@ -63,9 +63,15 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+% By L. Chi, V1.64 2022-08-06: add new parameter: "fun_handle_retry_too_many_times"
+%                              The behaviors after exceeding max retry
+%                              counts can be customed.
+%                              It is possible to use "return" instead
+%                              "error" to avoid exit abnormally.
+%
 % By L. Chi, V1.63 2022-07-28:
-%                             add new parameter: "is_skip_out_of_limit_without_error"
-%                             "pause_seconds" is an optional input parameter now.
+%                             + add new parameter: "is_skip_out_of_limit_without_error"
+%                             + "pause_seconds" is an optional input parameter now.
 % By L. Chi, V1.62 2022-07-27: fix a bug: Some old codes will create a large nan matrix before downloading a large dataset no matter whether  
 %                                "divided_dim_str" is set or not. The nan matrix is may lead to an out-of-memory error and it is useless. 
 %                                Related codes have been commented and will be removed in a later version. 
@@ -209,7 +215,15 @@ end
 % + is_skip_out_of_limit_without_error [logical] (default: false)
     [is_skip_out_of_limit_without_error, varargin] =  FUN_codetools_read_from_varargin( varargin, 'is_skip_out_of_limit_without_error', false, true );
           
-    
+% + fun_handle_retry_too_many_times
+%   This is a handle defining what happens after N_max_retry reached.by default, fun_handle_retry_too_many_times = [], 
+%   and the default function in FUN_codetool_retry ( @()error(['Retry exceeds max limit! Exit!']) ) will be used.
+%
+    [fun_handle_retry_too_many_times, varargin] =  FUN_codetools_read_from_varargin( varargin, 'fun_handle_retry_too_many_times', [], true );
+
+% --------------------------------------------
+% all optional paramters should have been processed by here. Nothing should
+% be left in varargin.
     if ~isempty( varargin )
         error('Unkown parameters found!')
     end
@@ -222,11 +236,11 @@ end
 
 % info0 = ncinfo(filename0);
     f_ncinfo = @(x_filename)ncinfo( x_filename );
-    info0 = FUN_codetool_retry( f_ncinfo, filename0, N_max_retry, pause_seconds );
+    info0 = FUN_codetool_retry( f_ncinfo, filename0, N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
 
 % ncid0 = netcdf.open( filename0, 'NOWRITE' );
     f_nc_open_nw = @(x_filename)netcdf.open( x_filename, 'NOWRITE' );
-    ncid0 = FUN_codetool_retry( f_nc_open_nw, filename0, N_max_retry, pause_seconds );
+    ncid0 = FUN_codetool_retry( f_nc_open_nw, filename0, N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
 
 %% prepare dimensions
 
@@ -244,7 +258,7 @@ for ii = 1:length(info0.Dimensions)
         % execute the following command in a try-catch block:
         %   dim_info_now = FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij} );
         f_nc_genStartCount = @()FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij} );
-        dim_info_now = FUN_codetool_retry( f_nc_genStartCount, [], N_max_retry, pause_seconds );
+        dim_info_now = FUN_codetool_retry( f_nc_genStartCount, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
         
         
         %var_str_now = dim_limit_name{ij};
@@ -280,7 +294,7 @@ end
 %% Any data found within the required range? 
 if any( isnan([info1.Dim(:).start]) & [ info1.Dim(:).count  ] == 0 )
     if is_skip_out_of_limit_without_error
-        disp(['No data can be found within the required range ... Output file (' filename1 ') will be created!'])
+        disp(['No data can be found within the required range ... Output file (' filename1 ') will not be created!'])
         return
     else
         error('No data can be found within the required range')
@@ -427,7 +441,7 @@ for iv = 1:length(info0.Variables)
     % downloading varialbe ================================================
     % varID0 = netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
     f_nc_inqVarID = @()netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
-    varID0 = FUN_codetool_retry( f_nc_inqVarID, [], N_max_retry, pause_seconds );
+    varID0 = FUN_codetool_retry( f_nc_inqVarID, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
         
         
     if is_load_all_at_once == 1 % -----------------------------------------
@@ -440,7 +454,7 @@ for iv = 1:length(info0.Variables)
             %var_value = netcdf.getVar( ncid0, varID0 );
             f_nc_inqVarID_at_once = @()netcdf.getVar( ncid0, varID0 );
         end
-        var_value = FUN_codetool_retry( f_nc_inqVarID_at_once, [], N_max_retry, pause_seconds );
+        var_value = FUN_codetool_retry( f_nc_inqVarID_at_once, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
         
         % write data into the output file
         netcdf.putVar( ncid1, varID1, var_value);

@@ -34,7 +34,7 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
 
 ### Know problems
 
-+ This toolbox does not support groups. And there is not plan to add this feature in near future.
++ This toolbox does not support groups. And there is no plan to add this feature in near future.
 
 -----------------------------------------------
 
@@ -155,10 +155,13 @@ data = FUN_nc_varget_enhanced( 'Demo_SST_2001.nc', 'sst');
 ##### INPUT
 
 + filename: path to a specific netcdf file     
+
 + varname : name of the variable to be read     
+
 + start, count, stride: same as [this document for `netcdf.getVar`](https://www.mathworks.com/help/matlab/ref/netcdf.getvar.html)
   
   ##### OUTPUT
+
 + data: values read from the netcdf file. 
 
 ##### example
