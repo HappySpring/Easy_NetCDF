@@ -54,7 +54,7 @@ for ii = 1:length(info0.Dimensions)
         ij  = tem(dim_cmp_loc);% for dim_limit_var & dim_layer
         
         var_str_now = dim_limit_var{ij};
-        varid_now = netcdf.inqVarID(ncid0, var_str_now ) ;
+        %varid_now = netcdf.inqVarID(ncid0, var_str_now ) ;
         %var_now = netcdf.getVar(ncid0, varid_now ) ;
         disp('The number of layers, stead of the absolute value, will be used.')
         disp(['          Currently, the layer (starts from 1) ' num2str( dim_layer{ij}(1) ) ' to '  num2str(dim_layer{ij}(2)) ' are selected.'])
@@ -111,14 +111,14 @@ for iv = 1:length(info0.Variables)
    % Prepare for varialbes
     VarDim_now = info0.Variables(iv).Dimensions;
     
-    if any( strcmpi( copy_var_list, info0.Variables(iv).Name ) );
+    if any( strcmpi( copy_var_list, info0.Variables(iv).Name ) ) || isempty(copy_var_list)
        disp(['Copying variable: ' info0.Variables(iv).Name ])
     else
        disp(['Skip variable: ' info0.Variables(iv).Name ]);
         continue
     end
     
-    if isempty( VarDim_now );
+    if isempty( VarDim_now )
        % skip this variable
        warning(['The following variable will be ignored due to the missing of dimension info: ' info0.Variables(iv).Name])
        continue

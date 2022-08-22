@@ -66,17 +66,26 @@ else
            % Skip the error if the data is monotonic within the required limit.
            % This is introduced from reading HYCOM data (exp 93.0)
            
-           if all( diff( x(ck_tem_ind) ) > 0 )
+           %if all( diff( x(ck_tem_ind) ) > 0 )
+           %     is_x_decrese = 0; 
+           %elseif all( diff( x(ck_tem_ind) ) < 0 )
+           %     is_x_decrese = 1;
+           %     x = x(end:-1:1);
+           %else
+           %    error('Unexpected value!');
+           %end
+           
+           if median( diff( x(ck_tem_ind) ) > 0 )
                 is_x_decrese = 0;
            
-           elseif all( diff( x(ck_tem_ind) ) < 0 )
+           elseif median( diff( x(ck_tem_ind) ) < 0 )
                 is_x_decrese = 1;
                 x = x(end:-1:1);
            else
                error('Unexpected value!');
            end
            
-           warning(['x is not monotonic, however, it is monotonic within the inquire limit! Plase check its raw values!']);
+           warning(['x is not monotonic, however, it is monotonic within the inquired limit! Plase check its raw values!']);
            
        else          
            % x must be monotonic within the required limit.

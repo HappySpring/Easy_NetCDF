@@ -71,6 +71,14 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %      is_quiet_mode_on: (default: false)
 %             If the quiet mode is on, filenames will not be printed to the
 %             screen.
+%      is_auto_resort_on: (default: true)
+%             resort output data based on "merged dim"
+%
+%      is_auto_remove_duplicates: (default: false)
+%             When duplicated values are found in the merged dim, only the
+%             first one will be kept and the others will be dropped. 
+%             Please do not turn on this option unless you know how it
+%             works.
 %
 % OUTPUT:
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
@@ -104,6 +112,12 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
 
+% V2.18 by L. Chi
+%          Introduce two new parameter to handle HYCOM data in unusual
+%          cases:
+%            + add "is_auto_resort_on"
+%            + add "is_auto_remove_duplicates"
+%          The default behavior of this function has not been changed.
 % V2.17 by L. Chi
 %          + fix a bug in comparing `dim_name` and `dim_varname`, which may
 %              lead to an error unexpected if one of them is [] and the
@@ -195,6 +209,10 @@ end
 [path_relative_to, varargin] = FUN_codetools_read_from_varargin(  varargin, 'path_relative_to', []    );
 [is_quiet_mode_on, varargin] = FUN_codetools_read_from_varargin(  varargin, 'is_quiet_mode_on', false );
 [is_log_compact_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_log_compact_on', true ); % do not print skipped files on the screen.
+[is_auto_resort_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_resort_on', true ); % do not print skipped files on the screen.
+[is_auto_remove_duplicates, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_remove_duplicates', false ); % do not print skipped files on the screen.
+
+
 
 if ~isempty( varargin )
     builtin('disp', varargin);
@@ -535,8 +553,38 @@ else
     out_dim.merged_dim = [ var_dim_merged.value ];
 end
 
+% ### remove duplicated values in merged dimension!
+% If there are duplicated values in the merged dimension, the first one in
+% data_out will be kept and the others will be dropped no matter whether
+% they are idential or not. 
+% 
+% This is written for handling some HYCOM data. 
+if is_auto_remove_duplicates
+    [~, unique_ind ] = unique( out_dim.(var_dim0(ind_merged_dim).value_name) );
+    
+    if isequal( unique_ind(:)', [1:size(data_out,2)] )
+        %pass
+    else
+        dup_ind = setdiff( 1:length( out_dim.(var_dim0(ind_merged_dim).value_name) ), unique_ind);
+        warning(['Duplicated found at the following points:'])
+        if strcmpi( time_var_name, var_dim0(ind_merged_dim).value_name )
+            for dd = 1:length( dup_ind )
+                fprintf('Ind (before resort) %i, value: %s\n', dup_ind(dd), datestr( out_dim.(var_dim0(ind_merged_dim).value_name)(dup_ind(dd)), 0 )  );
+            end
+        else    
+            for dd = 1:length( dup_ind )
+                fprintf('Ind (before resort) %i, value: %s\n', dup_ind(dd), out_dim.(var_dim0(ind_merged_dim).value_name)(dup_ind(dd))  );
+            end
+        end
+        
+        out_dim.(var_dim0(ind_merged_dim).value_name) = out_dim.(var_dim0(ind_merged_dim).value_name)(unique_ind); %This must be put after the for loops.
+        data_out = data_out(:,unique_ind);
+        size1(ind_merged_dim) =  size1(ind_merged_dim) - length(dup_ind);
+    end
+end
+
 % ### make sure that the value is ascending in the `merged dimension`.
-if ~isempty( merge_dim_name )
+if is_auto_resort_on && ~isempty( merge_dim_name )
     [out_dim.(var_dim0(ind_merged_dim).value_name), sort_ind ] = sort( out_dim.(var_dim0(ind_merged_dim).value_name), 'ascend');
     data_out = data_out(:,sort_ind);
 end

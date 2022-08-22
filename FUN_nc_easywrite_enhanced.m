@@ -16,6 +16,7 @@ function FUN_nc_easywrite_enhanced( filename, dim_name, dim_length, varname, dim
 %     
 %
 
+% 2022-08-18 V1.20 by L. Chi: support unlimited size of dimension (defined by inf in dim_length)
 % 2021-05-31 V1.11 by L. Chi: fix a bug in writting global attributes.
 % xxxx-xx-xx V1.10 by L. Chi: support parameter `is_auto_chunksize`: estimating the chunksize automatically. 
 % xxxx-xx-xx V1.01 by L. Chi: skip global att if 'global_str_att' does not exist or is empty.
@@ -58,14 +59,20 @@ end
 % 'NC_NOCLOBBER'£º                Prevent overwriting of existing file with the same name.
 % 'NC_SHARE'£º                        Allow synchronous file updates.
 % 'NC_64BIT_OFFSET'£º        Allow easier creation of files and variables which are larger than two gigabytes.
-ndims = length(size(data));
+% ndims = length(size(data));
 ncid = netcdf.create(filename,'NETCDF4');
 
 %% 2 Define dimensions
 % dimid = netcdf.defDim(ncid,dimname,dimlen)
 
 for idim = 1:length(dim_name)
-    dimID(idim) = netcdf.defDim(ncid,dim_name{idim}, dim_length(idim) );
+    if isinf( dim_length(idim) )
+        dim_length_ind = netcdf.getConstant('NC_UNLIMITED') ;
+    else
+        dim_length_ind = dim_length(idim) ;
+    end
+        dimID(idim) = netcdf.defDim(ncid,dim_name{idim}, dim_length_ind );
+    
 end
     clear idim
 %% 3. Define variables
@@ -129,7 +136,18 @@ netcdf.endDef(ncid)
 % netcdf.putVar(ncid,varid,start,count,data)
 % netcdf.putVar(ncid,varid,start,count,stride,data)
 for ivar = 1:length(varname)
-    netcdf.putVar(ncid,varid(ivar),data{ivar})
+    
+    nc_start = zeros(ndims(data{ivar}),1);
+    nc_stride   = ones(ndims(data{ivar}),1);
+    nc_count    = size(data{ivar});
+    
+    if length(dimID( dimNum_of_var{ivar} )) == 1
+        nc_start = nc_start(1);
+        nc_stride= nc_stride(1);
+        nc_count = nc_count(1);        
+    end
+    
+    netcdf.putVar( ncid, varid(ivar), nc_start(:)', nc_count(:)', nc_stride(:)',  data{ivar} );
 end
 
 
