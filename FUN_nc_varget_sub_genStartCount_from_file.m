@@ -24,6 +24,9 @@ function var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname,
 % OUTPUT:
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
 % -------------------------------------------------------------------------
+% V1.03 by L. Chi. Fix a bug. The limit for time may not be applied
+%                  properly when `time_var_name` is named differently from
+%                  the dimension for time.
 % V1.02 by L. Chi. `dim_varname` accepts manually set nuerical array as
 %                  input.
 % V1.01 by L. Chi. Return empty structure if no dimension is associated to
@@ -65,6 +68,16 @@ end
         end
     end
     
+% ### find the dimension for time
+    if exist('time_var_name','var') && ~isempty( time_var_name ) 
+        time_var_id = netcdf.inqVarID(ncid,time_var_name);
+        [~,~,time_dim_id,~] = netcdf.inqVar(ncid,time_var_id);
+        if length(time_dim_id) > 1
+           error('The variable for time cannot contain more than one dimension!'); 
+        end
+        time_dim_name = netcdf.inqDim(ncid,time_dim_id);
+    end
+    
 % ### Set limit for each dimension
 for ii = 1:length( var_dim_id )
     
@@ -84,7 +97,8 @@ for ii = 1:length( var_dim_id )
         dim_varname_now = dim_varname{ dim_ind };
         
         % #### apply limit
-        if exist('time_var_name','var') && ~isempty( time_var_name ) &&  strcmp( dim_name_now, time_var_name )
+        %if exist('time_var_name','var') && ~isempty( time_var_name ) && strcmp( dim_name_now, time_var_name )
+        if exist('time_var_name','var') && ~isempty( time_var_name ) && strcmp( dim_name_now, time_dim_name ) 
             % The axis is time (with the attribute "units" like " days since 2000-01-01 00:00:00")
             dim_val_now = FUN_nc_get_time_in_matlab_format( filename, dim_varname_now ) ;
             var_dim(ii).value_name  = dim_varname_now; 
