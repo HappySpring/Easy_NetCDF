@@ -43,9 +43,12 @@ if ~exist('is_compressed_output','var') || isempty( is_compressed_output )
     is_compressed_output = true;
 end
 
+% is_auto_chunksize: replace the default setting for chunksize by a customed equation in Easy_NetCDF
+[is_auto_chunksize, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_chunksize', false );
 
-[is_auto_chunksize, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_chunksize', false, true );
- 
+% is_add_preset_att: add some preset attributes in the output files, like "Copy Source", "Copy Date", "Copy Range". 
+[is_add_preset_att, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_add_preset_att', true );
+
 if length( varargin ) > 0
     error('Unkown parameters found!')
 end
@@ -106,10 +109,12 @@ for ii = 1:length(info0.Attributes)
     netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), info0.Attributes(ii).Name, info0.Attributes(ii).Value);
 end
 
-netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), 'Copy Source', filename0 );
-netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), 'Copy Date', datestr(now) );
-for ii = 1:length( dim_limit_name )
-    netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), ['Copy Range-' num2str(ii)], [dim_limit_name{ii} ' ' num2str( dim_limit_val{ii} )] );
+if is_add_preset_att
+    netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), 'Copy Source', filename0 );
+    netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), 'Copy Date', datestr(now) );
+    for ii = 1:length( dim_limit_name )
+        netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), ['Copy Range-' num2str(ii)], [dim_limit_name{ii} ' ' num2str( dim_limit_val{ii} )] );
+    end
 end
 %% load/write variable
 for iv = 1:length(info0.Variables)
