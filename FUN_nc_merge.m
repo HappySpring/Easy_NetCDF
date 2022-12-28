@@ -216,6 +216,8 @@ if is_overlap_allowed
     MV.all = cell2mat( MV.val(:) );
 else
     
+    MV.all = [];
+    
     for ii = 1:length( filepath_list )
        fprintf('Checking: %s\n', filepath_list{ii} );
        tem = FUN_nc_varget( filepath_list{ii}, merge_dim_var_name ); 
@@ -415,7 +417,10 @@ for iv = 1:length(info0.Variables)
         
         for ii = 1:length( filepath_list )
             
-            if MV.count(ii) == 0
+            % MV.count is not assigned when is_overlap_allowed is false.
+            % This is a temporal fix before next major update of this
+            % function.
+            if is_overlap_allowed && MV.count(ii) == 0 
                continue 
             end
             
