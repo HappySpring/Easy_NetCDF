@@ -1,4 +1,4 @@
-function att_value = FUN_nc_attget( filename, varname, attname )
+function out = FUN_nc_attget( filename, varname, attname )
 % function att_value = FUN_nc_attget( filename, varname, attname )
 %
 % read attributes from netcdf files
@@ -9,9 +9,11 @@ function att_value = FUN_nc_attget( filename, varname, attname )
 %      varname : name of the variable
 %                For global attributes, the varname should be empty ([]).
 %      attname : name of the attribute. 
+%                if attname = [], return all attributes associated with
+%                this variable.
 %
 % OUTPUT:
-%      att_value: value of the attribute 
+%      out: value of the attribute 
 % -------------------------------------------------------------------------
 %
 % V1.1 By L.Chi., 2016-07-25
@@ -27,7 +29,33 @@ else
     varid = netcdf.inqVarID( ncid, varname);
 end
 
-att_value = netcdf.getAtt(ncid,varid,attname);
+
+if ~isempty( attname )
+    % read the specific att
+    out = netcdf.getAtt(ncid,varid,attname);
+    
+else
+    % read all attributes from a variable
+    [varname,xtype,dimids,natts] = netcdf.inqVar(ncid,varid);
+    
+    
+    for ii = 1 : natts
+        
+        att_name = netcdf.inqAttName( ncid, varid, ii-1 );
+        att_val  = netcdf.getAtt( ncid, varid, att_name );
+        
+        if strcmp( att_name(1), '_' )
+            att_name = [att_name(2:end) , '_' ]; 
+        end
+        
+        out.(att_name) = att_val;
+        
+        att_name = [];
+        att_val  = [];
+    end
+    
+end
+
 netcdf.close(ncid);
 
 
