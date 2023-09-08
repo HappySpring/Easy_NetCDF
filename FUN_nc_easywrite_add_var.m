@@ -28,6 +28,7 @@ function FUN_nc_easywrite_add_var( filename, var_dim_str, var_kind, var_name, da
 % OUTPUT:
 %   N/A
 % -------------------------------------------------------------------------
+% V1.20 by L. Chi: add support for specifying chunksize manually
 % V1.10 by L. Chi: Call "FUN_nc_defVar_datatypeconvert" before defining
 %                   file format (If/A);
 % V1.00 by L. Chi (L.Chi.Ocean@outlook.com)
@@ -42,6 +43,10 @@ function FUN_nc_easywrite_add_var( filename, var_dim_str, var_kind, var_name, da
 %% 0. set default values and check the existing file
 
 [is_auto_chunksize, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_chunksize', false, true );
+
+% set chunksize manually
+[chunksize, varargin] = FUN_codetools_read_from_varargin( varargin, 'chunksize', [], true );
+
 [nc_FillValue, varargin] = FUN_codetools_read_from_varargin( varargin, '_FillValue', [], true );
 
 if ~isempty( varargin )
@@ -55,19 +60,21 @@ else
     error('The file does not exist!');
 end
 
-if ~exist('is_compression') || isempty( is_compression );
+if ~exist('is_compression') || isempty( is_compression )
     is_compression = false;
 end
 
-
+% check whether this variable has already existed in the netcdf file.
 infos = ncinfo( filename );
-existVarList = {infos.Variables.Name};
-if any( strcmp( existVarList, var_name ) )
-    disp('The variable already exists, it will be overwritten!')
-    var_is_exist = true;
-else
-    var_is_exist = false;
-    % ok
+
+var_is_exist = false;
+
+if ~isempty(infos.Variables)
+    existVarList = {infos.Variables.Name};
+    if any( strcmp( existVarList, var_name ) )
+        disp('The variable already exists, it will be overwritten!')
+        var_is_exist = true;
+    end
 end
 
 if ~iscell( var_dim_str )
@@ -121,7 +128,15 @@ if is_compression
 end
 
 % ### set chunk size ------------------------------------------------------
-if is_auto_chunksize
+if ~isempty( chunksize )
+    % set chunksize manually
+    netcdf.defVarChunking( ncid, varid, 'CHUNKED', chunksize );
+    
+    if is_auto_chunksize
+       warning('is_auto_chunksize is overrided by the chunksize spcified by the user!'); 
+    end
+    
+elseif is_auto_chunksize
     
     try
         data_type = FUN_nc_defVar_datatypeconvert( var_kind );
