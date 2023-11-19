@@ -112,6 +112,11 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
 
+% v2.19 by L. Chi
+%          Updated to support a new format ('v2') of per-saved dimension
+%          information across a large set of netcdf files
+%          created by "FUN_nc_gen_presaved_netcdf_info_v2"
+%          The file size in largely reduced (~ 1/10 of the previous one)
 % V2.18 by L. Chi
 %          Introduce two new parameter to handle HYCOM data in unusual
 %          cases:
@@ -209,8 +214,8 @@ end
 [path_relative_to, varargin] = FUN_codetools_read_from_varargin(  varargin, 'path_relative_to', []    );
 [is_quiet_mode_on, varargin] = FUN_codetools_read_from_varargin(  varargin, 'is_quiet_mode_on', false );
 [is_log_compact_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_log_compact_on', true ); % do not print skipped files on the screen.
-[is_auto_resort_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_resort_on', true ); % do not print skipped files on the screen.
-[is_auto_remove_duplicates, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_remove_duplicates', false ); % do not print skipped files on the screen.
+[is_auto_resort_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_resort_on', true ); 
+[is_auto_remove_duplicates, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_remove_duplicates', false ); 
 
 
 
@@ -269,6 +274,12 @@ if isstruct( filelist ) && isfield( filelist, 'var' ) && isfield( filelist, 'fil
     presaved_info = filelist;
     filepath_list = {presaved_info.file.path};
     
+    if isfield( presaved_info, 'format' )
+        pregen_data_format = presaved_info.format;
+    else
+        pregen_data_format = 'v1';
+    end
+
     % check variable for time
     if ( ~isempty( time_var_name ) && ~strcmpi( time_var_name, presaved_info.merge_dim.name) ) ||(  ~isempty( dim_varname ) && ~isequal( dim_varname, dim_name ) ) % dim_varname is set to dim_name by default
         error(' time_var_name & dim_varname should be defined when the pre-saved .mat file is generated! They cannot be defined here!')
@@ -329,7 +340,13 @@ end
 if is_load_presaved_info == true
     tmp_presaved_info = presaved_info ;
     tmp_presaved_info.file = tmp_presaved_info.file(1);
-    var_dim0 = FUN_nc_varget_sub_genStartCount_from_presaved_data( tmp_presaved_info, varname, dim_name, dim_limit );
+    if strcmpi( pregen_data_format, 'v1' )
+        var_dim0 = FUN_nc_varget_sub_genStartCount_from_presaved_data( tmp_presaved_info, varname, dim_name, dim_limit );
+    elseif strcmpi( pregen_data_format, 'v2' )
+        var_dim0 = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( tmp_presaved_info, varname, dim_name, dim_limit );
+    else
+        error;
+    end
     var_dim0 = var_dim0.var_dim;
 else
     fn = filepath_list{1};
@@ -360,7 +377,22 @@ if ~isempty( merge_dim_name )
 
         % get dimension info
         if is_load_presaved_info == true
-            var_dim_merged = FUN_nc_varget_sub_genStartCount_from_presaved_data( presaved_info, [], merge_dim_name, dim_limit_for_merged_var );
+            
+            if strcmpi( pregen_data_format, 'v1' )
+                var_dim_merged = FUN_nc_varget_sub_genStartCount_from_presaved_data( presaved_info, [], merge_dim_name, dim_limit_for_merged_var );
+            elseif strcmpi( pregen_data_format, 'v2' )
+
+                tmp_fileloc = presaved_info.merge_dim.value >= dim_limit_for_merged_var{1}(1) & presaved_info.merge_dim.value <= dim_limit_for_merged_var{1}(2);
+                if isempty( tmp_fileloc )
+                     error('No data found within the required range for the merged dimension!') 
+                end
+                presaved_info.file = presaved_info.file(tmp_fileloc);
+                filepath_list      = filepath_list(tmp_fileloc);
+
+                var_dim_merged = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( presaved_info, [], merge_dim_name, dim_limit_for_merged_var );
+            else
+                error;
+            end
             var_dim_merged = [ var_dim_merged(:).var_dim ];
 
             for ii = 1:length( var_dim_merged )

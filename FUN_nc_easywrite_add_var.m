@@ -123,8 +123,12 @@ end
 % Boolean value. To turn on compression, set this argument to true and set the deflateLevelargument to the desired compression level.
 % deflateLevel:
 % Numeric value between 0 and 9 specifying the amount of compression, where 0 is no compression and 9 is the most compression.
-if is_compression
-    netcdf.defVarDeflate(ncid,varid,true,true,1);
+if is_compression 
+    if var_is_exist
+        disp('The deflate level of the existing variable will be used!')
+    else
+        netcdf.defVarDeflate(ncid,varid,true,true,1);
+    end
 end
 
 % ### set chunk size ------------------------------------------------------

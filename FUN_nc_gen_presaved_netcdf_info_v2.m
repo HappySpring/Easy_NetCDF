@@ -1,8 +1,13 @@
-function pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path, varargin)
+function pregen_info = FUN_nc_gen_presaved_netcdf_info_v2( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path, varargin)
 % pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path )
 % This is an internal function called by FUN_nc_varget_enhanced_region_2_multifile
 % Please refer to the comments in "FUN_nc_varget_enhanced_region_2_multifile.m" for input parameters.
 %
+% 2023-11-19 v2.00 by L. Chi. Remove duplicated information saved in
+%                                 pregen_info variable, which is ~ 10% of
+%                                 the previous ones. 
+%                             Disable dimension and variable check for each
+%                             files to speed up the codes.
 % 2021-08-02 V1.30 By L. Chi. It is possible to ignore certain dimensions
 %                              and varialbes now by the following two
 %                              parameters
@@ -53,11 +58,19 @@ if ~exist('merge_dim_name','var')
     merge_dim_name = [];
 end
 
+
+pregen_info.format = 'v2';
+
 pregen_info.merge_dim.name = merge_dim_name;
 
 % If "path_relative_to" is not empty, the "folder" in the output structure
 % will be replaced by paths relative to "path_relative_to"
 [path_relative_to, varargin] = FUN_codetools_read_from_varargin( varargin, 'path_relative_to', [], true );
+
+
+% Check whether each file contains same variables and dimensions
+% The default value is set to false to speed up the codes
+[is_check_each_file, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_check_each_file', false, true );
 
 % Ignore the following dimensions and variables
 [ignore_dim_name, varargin] = FUN_codetools_read_from_varargin( varargin, 'ignore_dim_name', [], true );
@@ -195,12 +208,78 @@ for idim = 1:length( dimlist )
 end
 idim = [];
 
+
+
+%%
+% =========================================================================
+% load shared dimensions (dimension other than the one to be merged)
+% =========================================================================
+
+
+% interface
+fn = filepath_list{1};
+
+% load info
+fn_info = ncinfo(fn) ;
+
+% ## load dimensions ======================================================
+
+for idim = 1:length( dimlist )
+
+    % interface
+    dn  = dimlist{idim}; % dimension name
+    dim_varname_now = dim_varname_list{idim};
+
+    % load basic info of the current dimension
+    pregen_info.dim(idim).name = dn;
+    tmp_ind = FUN_struct_find_field_ind( fn_info.Dimensions, 'Name', dn );
+
+    pregen_info.dim(idim).length       = fn_info.Dimensions(tmp_ind).Length ;
+    pregen_info.dim(idim).is_unlimited = fn_info.Dimensions(tmp_ind).Unlimited ;
+
+    % load axis associated with each dimension
+    pregen_info.dim(idim).is_time       = false;
+    pregen_info.dim(idim).is_dim_merged = false;
+
+    if strcmpi( dn, merge_dim_name )
+        pregen_info.dim(idim).is_dim_merged = true;
+    end
+           
+    if isempty( dim_varname_now ) || all( isnumeric( dim_varname_now ) & isnan( dim_varname_now ) )
+        pregen_info.dim(idim).value   = 1 : pregen_info.dim(idim).length;
+        pregen_info.dim(idim).varname = [];
+
+    elseif strcmpi( dim_varname_now, time_var_name ) %The current dim is time
+        pregen_info.dim(idim).value   = FUN_nc_get_time_in_matlab_format( fn, dim_varname_now );
+        pregen_info.dim(idim).is_time = true;
+        pregen_info.dim(idim).varname = dim_varname_now;
+
+    elseif ischar( dim_varname_now ) % dim_varname_now is the name of a variable associated to this dimension
+        pregen_info.dim(idim).value   = FUN_nc_varget_enhanced( fn, dim_varname_now );
+        pregen_info.dim(idim).varname = dim_varname_now;
+
+    elseif isnumeric( dim_varname_now ) % dim_varname_now contains a manually provded numerical matrx.
+
+        if length( dim_varname_now ) == pregen_info.dim(idim).length
+            pregen_info.dim(idim).value   = dim_varname_now;
+            pregen_info.dim(idim).varname = dn;
+        else
+            error('The length of input dim_varname does not match the length of the assocated dimension!')
+        end
+
+    else
+        error('Unexpected dim_varname!');
+    end
+
+end
+    
+
 %% 
 % =========================================================================
 % # load dimension info from each file
 % =========================================================================
 
-
+dim_varname_merged = dim_varname_list{ strcmpi( dim_varname_list, merge_dim_name ) };
 
 for ii = 1:length( filepath_list ) 
     
@@ -212,113 +291,127 @@ for ii = 1:length( filepath_list )
     fprintf( '%s \n',fn);
     
     % load info
-    fn_info = ncinfo(fn) ;
     
-    % remove ignored dimensions from "ignore_dim_name".
-    %   Variables assocated to those dimensions will also be ignored. 
-    if ~isempty(ignore_dim_name)
-        rm_dim_loc = ismember( {fn_info.Dimensions.Name}, ignore_dim_name );
+    if is_check_each_file == false
         
-        % remove dimensions to be ignored
-        if any(rm_dim_loc)
-            % remove ignored dimensions
-            fprintf('  The following dimension from the current file is ignored:\n')
-            fprintf('      Ignored dimension: %s \n', fn_info.Dimensions(rm_dim_loc).Name );
-            fn_info.Dimensions(rm_dim_loc) = [];
-        end
-    end
+        ncid = netcdf.open( fn );
+        dimid= netcdf.inqDimID( ncid, dim_varname_merged );
         
-    % remove variables to be ignored
-    if ~isempty( ignore_dim_name ) || isempty( ignore_var_name )
+        fn_info = [];
+        [ fn_info.Dimensions.Name, fn_info.Dimensions.Length ] = netcdf.inqDim( ncid, dimid );
+
+        tmp.unlimit_dim_id = netcdf.inqUnlimDims(ncid);
+        fn_info.Dimensions.Unlimited = tmp.unlimit_dim_id == dimid;
         
-        rm_var_loc = false( size( fn_info.Variables ) );
+        netcdf.close(ncid);
         
-        for jv = 1:length( fn_info.Variables )
-            tem_dim = fn_info.Variables(jv).Dimensions;
-            
-            if ( ~isempty( ignore_dim_name ) && ~isempty( tem_dim ) &&  any( ismember( {tem_dim.Name}, ignore_dim_name ) ) ) ...
-                    || ( ~isempty(ignore_var_name) && ismember( {fn_info.Variables(jv).Name}, ignore_var_name) )
-                rm_var_loc(jv) = true;
-                fprintf('  The following variables will be ignored since they are associated an ignored dimension:\n')
-                fprintf('      Remove variable: %s \n', fn_info.Variables(jv).Name )
+    else
+
+        fn_info = ncinfo(fn) ;
+
+        % remove ignored dimensions from "ignore_dim_name".
+        %   Variables assocated to those dimensions will also be ignored. 
+        if ~isempty(ignore_dim_name)
+            rm_dim_loc = ismember( {fn_info.Dimensions.Name}, ignore_dim_name );
+    
+            % remove dimensions to be ignored
+            if any(rm_dim_loc)
+                % remove ignored dimensions
+                fprintf('  The following dimension from the current file is ignored:\n')
+                fprintf('      Ignored dimension: %s \n', fn_info.Dimensions(rm_dim_loc).Name );
+                fn_info.Dimensions(rm_dim_loc) = [];
             end
         end
-        fn_info.Variables(rm_var_loc) = [];
-        
-    end
-
+            
+        % remove variables to be ignored
+        if ~isempty( ignore_dim_name ) || isempty( ignore_var_name )
     
+            rm_var_loc = false( size( fn_info.Variables ) );
+    
+            for jv = 1:length( fn_info.Variables )
+                tem_dim = fn_info.Variables(jv).Dimensions;
+    
+                if ( ~isempty( ignore_dim_name ) && ~isempty( tem_dim ) &&  any( ismember( {tem_dim.Name}, ignore_dim_name ) ) ) ...
+                        || ( ~isempty(ignore_var_name) && ismember( {fn_info.Variables(jv).Name}, ignore_var_name) )
+                    rm_var_loc(jv) = true;
+                    fprintf('  The following variables will be ignored since they are associated an ignored dimension:\n')
+                    fprintf('      Remove variable: %s \n', fn_info.Variables(jv).Name )
+                end
+            end
+            fn_info.Variables(rm_var_loc) = [];
+    
+        end
+
+    end
     
     % ## Check ============================================================
     
-    % check - variables
-    tmp_xor = setxor( {fn_info.Variables.Name}, varlist );
-    if isempty( tmp_xor )
-        % PASS
-    else
-       fprintf('Error with following variables: \n      ');
-       fprintf('%s ',tmp_xor{:})
-       fprintf('\n')
-       error('All files must contain same variables'); 
-    end
-    
-    
-    % check - dimensions
-    tmp_xor = setxor( {fn_info.Dimensions.Name}, dimlist );
-    if isempty( tmp_xor )
-        % PASS
-    else
-       fprintf('Error with following dimensions: \n      ');
-       fprintf('%s ',tmp_xor{:})
-       fprintf('\n')
-       error('All files must contain same dimensions'); 
-    end
-    
-    % ## load dimensions ==================================================
+    if is_check_each_file == true 
+        % skip this will accelerate the codes
 
-    for idim = 1:length( dimlist )
-        
-        % interface
-        dn  = dimlist{idim}; % dimension name
-        dim_varname_now = dim_varname_list{idim};
-        
-        %if ii > 1 && ~strcmpi( dn, merge_dim_name )
-        %    continue
-        %end
-
-        % load basic info of the current dimension
-        pregen_info.file(ii).dim(idim).name   = dn;
-        tmp_ind = FUN_struct_find_field_ind( fn_info.Dimensions, 'Name', dn );
-        
-        pregen_info.file(ii).dim(idim).length = fn_info.Dimensions(tmp_ind).Length ;
-        pregen_info.file(ii).dim(idim).is_unlimited = fn_info.Dimensions(tmp_ind).Unlimited ;
-        
-        % load axis associated with each dimension
-        pregen_info.file(ii).dim(idim).is_time = false;
-
-        if isempty( dim_varname_now ) || all( isnumeric( dim_varname_now ) & isnan( dim_varname_now ) )
-            pregen_info.file(ii).dim(idim).value = 1 : pregen_info.file(ii).dim(idim).length;
-            pregen_info.file(ii).dim(idim).varname = [];
-        elseif strcmpi( dim_varname_now, time_var_name ) %The current dim is time
-            pregen_info.file(ii).dim(idim).value = FUN_nc_get_time_in_matlab_format( fn, dim_varname_now );
-            pregen_info.file(ii).dim(idim).is_time = true;
-            pregen_info.file(ii).dim(idim).varname = dim_varname_now;
-        elseif ischar( dim_varname_now ) % dim_varname_now is the name of a variable associated to this dimension
-            pregen_info.file(ii).dim(idim).value   = FUN_nc_varget_enhanced( fn, dim_varname_now );
-            pregen_info.file(ii).dim(idim).varname = dim_varname_now;
-        elseif isnumeric( dim_varname_now ) % dim_varname_now contains a manually provded numerical matrx.
-            
-            if length( dim_varname_now ) == pregen_info.file(ii).dim(idim).length
-                pregen_info.file(ii).dim(idim).value   = dim_varname_now;
-                pregen_info.file(ii).dim(idim).varname = dn;
-            else
-                error('The length of input dim_varname does not match the length of the assocated dimension!')
-            end
+        % check - variables
+        tmp_xor = setxor( {fn_info.Variables.Name}, varlist );
+        if isempty( tmp_xor )
+            % PASS
         else
-            error('Unexpected dim_varname!');
+           fprintf('Error with following variables: \n      ');
+           fprintf('%s ',tmp_xor{:})
+           fprintf('\n')
+           error('All files must contain same variables'); 
+        end
+        
+        % check - dimensions
+        tmp_xor = setxor( {fn_info.Dimensions.Name}, dimlist );
+        if isempty( tmp_xor )
+            % PASS
+        else
+           fprintf('Error with following dimensions: \n      ');
+           fprintf('%s ',tmp_xor{:})
+           fprintf('\n')
+           error('All files must contain same dimensions'); 
         end
 
     end
+    
+    % ## load the dimension to be merged only =============================
+    
+    % load basic info of the current dimension
+    pregen_info.file(ii).dim.name   = merge_dim_name;
+    tmp_ind = FUN_struct_find_field_ind( fn_info.Dimensions, 'Name', merge_dim_name );
+
+    pregen_info.file(ii).dim.length = fn_info.Dimensions(tmp_ind).Length ;
+    pregen_info.file(ii).dim.is_unlimited = fn_info.Dimensions(tmp_ind).Unlimited ;
+
+    % load axis associated with each dimension
+    pregen_info.file(ii).dim.is_time = false;
+
+    if isempty( dim_varname_merged ) || all( isnumeric( dim_varname_merged ) & isnan( dim_varname_merged ) )
+        pregen_info.file(ii).dim.value = 1 : pregen_info.file(ii).dim.length;
+        pregen_info.file(ii).dim.varname = [];
+
+    elseif strcmpi( dim_varname_merged, time_var_name ) %The current dim is time
+        pregen_info.file(ii).dim.value = FUN_nc_get_time_in_matlab_format( fn, dim_varname_merged );
+        pregen_info.file(ii).dim.is_time = true;
+        pregen_info.file(ii).dim.varname = dim_varname_merged;
+
+    elseif ischar( dim_varname_merged ) % dim_varname_now is the name of a variable associated to this dimension
+        pregen_info.file(ii).dim.value   = FUN_nc_varget_enhanced( fn, dim_varname_merged );
+        pregen_info.file(ii).dim.varname = dim_varname_merged;
+
+    elseif isnumeric( dim_varname_merged ) % dim_varname_now contains a manually provded numerical matrx.
+
+        if length( dim_varname_merged ) == pregen_info.file(ii).dim.length
+            pregen_info.file(ii).dim.value   = dim_varname_merged;
+            pregen_info.file(ii).dim.varname = merge_dim_name;
+        else
+            error('The length of input dim_varname does not match the length of the assocated dimension!')
+        end
+    else
+        error('Unexpected dim_varname!');
+    end
+    
+    % control shape
+    pregen_info.file(ii).dim.value = pregen_info.file(ii).dim.value(:);
     
     %idim = [];
 end
@@ -395,6 +488,39 @@ else
     pregen_info.param.is_relative_path = false;    
 end
 
+
+%% 
+% % =======================================================================
+% # correct values for the merged dimension.
+% =========================================================================
+
+nm = 0;
+for ii = 1:length( pregen_info.file )
+    nm = nm + pregen_info.file(ii).dim.length;
+end
+
+tmp_dim_merged_val = nan(nm, 1);
+tmp_dim_merged_fileID = nan(nm,1);
+n0 = 0;
+for ii = 1:length( pregen_info.file )
+    n = pregen_info.file(ii).dim.length;
+    tmp_dim_merged_val(n0+1:n0+n)    = pregen_info.file(ii).dim.value;
+    tmp_dim_merged_fileID(n0+1:n0+n) = ii;
+    n0 = n0 + n;
+end
+
+if n0 == nm 
+else
+    error
+end
+
+mdimid = find([pregen_info.dim(:).is_dim_merged]);
+pregen_info.dim(mdimid).value  = tmp_dim_merged_val;
+pregen_info.dim(mdimid).length = nm;
+
+pregen_info.merge_dim.value = tmp_dim_merged_val;
+pregen_info.merge_dim.length= nm;
+pregen_info.merge_dim.files = tmp_dim_merged_fileID;
 %% 
 % =========================================================================
 % # Output
