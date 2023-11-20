@@ -3,14 +3,18 @@ function pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name
 % This is an internal function called by FUN_nc_varget_enhanced_region_2_multifile
 % Please refer to the comments in "FUN_nc_varget_enhanced_region_2_multifile.m" for input parameters.
 %
-% 2021-08-02 V1.30 By L. Chi. It is possible to ignore certain dimensions
+% 2023-11-20 v1.31 by L. Chi. It is recommended to replaced this by
+%                             "FUN_nc_gen_presaved_netcdf_info_v2". An
+%                             warning message has been added for this
+%                             purpose. 
+% 2021-08-02 V1.30 by L. Chi. It is possible to ignore certain dimensions
 %                              and varialbes now by the following two
 %                              parameters
 %                                 + ignore_dim_name
 %                                 + ignore_var_name
 % 2021-07-05 V1.20 by L. Chi. `dim_varname` accepts manually set nuerical array as
 %                  input.
-% 2021-06-29 V1.10 By L. Chi: (partly) support outputting relative path 
+% 2021-06-29 V1.10 by L. Chi: (partly) support outputting relative path 
 %                               The input "path_relative_to" must be part of the absolute path for each file.
 % xxxx-xx-xx V1.00 by L. Chi (L.Chi.Ocean@outlook.com)
 %
@@ -31,6 +35,8 @@ function pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name
 %     
 %     % with relative path
 %     pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path, 'path_relative_to', pwd );
+
+warning('It is highly recommended to use replace this by "FUN_nc_gen_presaved_netcdf_info_v2" with significant performance improvements and ~90% reduced size of the output .mat file')
 
 %% 
 % =========================================================================
