@@ -112,6 +112,9 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
 
+% v2.19b by L. Chi
+%          Fix a bug where empty range for variables is not set properly
+%          for the recently introduced "v2" format.
 % v2.19 by L. Chi
 %          Updated to support a new format ('v2') of per-saved dimension
 %          information across a large set of netcdf files
@@ -368,7 +371,7 @@ if ~isempty( merge_dim_name )
         % find the limit and properties of the merged dimension.
         ind_merged_dim_in_limit = find( strcmpi( dim_name, merge_dim_name ) );
         if isempty( ind_merged_dim_in_limit )
-            dim_limit_for_merged_var = [-inf inf];
+            dim_limit_for_merged_var = {[-inf inf]};
             dim_varname_for_merged_var = [];
         else
             dim_limit_for_merged_var = dim_limit( ind_merged_dim_in_limit );
@@ -382,10 +385,11 @@ if ~isempty( merge_dim_name )
                 var_dim_merged = FUN_nc_varget_sub_genStartCount_from_presaved_data( presaved_info, [], merge_dim_name, dim_limit_for_merged_var );
             elseif strcmpi( pregen_data_format, 'v2' )
 
-                tmp_fileloc = presaved_info.merge_dim.value >= dim_limit_for_merged_var{1}(1) & presaved_info.merge_dim.value <= dim_limit_for_merged_var{1}(2);
-                if isempty( tmp_fileloc )
+                tmp_mvar_loc = presaved_info.merge_dim.value >= dim_limit_for_merged_var{1}(1) & presaved_info.merge_dim.value <= dim_limit_for_merged_var{1}(2);
+                if isempty( tmp_mvar_loc )
                      error('No data found within the required range for the merged dimension!') 
                 end
+                tmp_fileloc        = unique(presaved_info.merge_dim.files(tmp_mvar_loc));
                 presaved_info.file = presaved_info.file(tmp_fileloc);
                 filepath_list      = filepath_list(tmp_fileloc);
 
@@ -598,7 +602,7 @@ if is_auto_remove_duplicates
         %pass
     else
         dup_ind = setdiff( 1:length( out_dim.(var_dim0(ind_merged_dim).value_name) ), unique_ind);
-        warning(['Duplicated found at the following points:'])
+        warning('Duplicated found at the following points:')
         if strcmpi( time_var_name, var_dim0(ind_merged_dim).value_name )
             for dd = 1:length( dup_ind )
                 fprintf('Ind (before resort) %i, value: %s\n', dup_ind(dd), datestr( out_dim.(var_dim0(ind_merged_dim).value_name)(dup_ind(dd)), 0 )  );
