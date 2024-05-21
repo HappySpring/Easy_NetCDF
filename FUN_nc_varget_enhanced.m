@@ -25,6 +25,7 @@ function data = FUN_nc_varget_enhanced(filename,varname,varargin)
 %    In the second case, data2 = data(20,16,30); 
 % ----------------------------------------------------------------------- %
 
+% V1.5b by L. Chi, 2024-05-21: fix a bug in reading 'char' without explicit dimension info
 % V1.5  by L. Chi, 2021-08-10: filename can be a 1x1 struct (e.g., results from dir('a.nc') )
 % V1.4  by L. Chi, 2019-06-23: ".'" is used instead of "'"
 % V1.3  by L. Chi, 2018-04-03: Add support for loading variable with
@@ -83,7 +84,7 @@ data_format = data_format.class;
          
          
      % For 1-D characters, it will be reshaped into 1 line automatically
-     if sum( [var_info.Dimensions.Length] > 1.1 ) == 1
+     if isfield(var_info.Dimensions,'Length') && sum( [var_info.Dimensions.Length] > 1.1 ) == 1
          data = data(:).';
      end
      
