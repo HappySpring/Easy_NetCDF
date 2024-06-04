@@ -85,6 +85,26 @@ Click "Home tab> Set Path". It will open a dialog for setting the path. Then, cl
 
 Several functions in this package were written for this purpose, all of which, except `FUN_nc_varget`, can be replaced by `FUN_nc_varget_enhanced_region_2_multifile`.
 
+
+
+***[New]*** You can load all variables from a single netcdf file by this
+
+```matlab
+data =  FUN_nc_load_all_variables( fn );
+```
+
+, where `fn` is the name of the netcdf file.  
+
+or  
+
+```matlab
+data =  FUN_nc_load_all_variables( fn, 'time_var_name', var_time );
+```
+
+which will convert the time variable (`var_time`) to matlab unit (days since 0000-01-00 00:00) according to its `units` property. 
+
+
+
 ### 2.1 Read a variable from one NetCDF file
 
 #### 2.1.1 Read data in its original type and values
