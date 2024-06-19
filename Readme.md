@@ -542,6 +542,45 @@ Max_Count_per_group = 5;
  FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_var, dim_limit_val, var_download, var_divided, divided_dim_str, Max_Count_per_group  )
 ```
 
+##### Example 2: A new template
+
+```matlab
+% HYCOM dataset at an OpenDAP server
+opendapURL = 'http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_19.1/2012';
+
+% output filename
+filename_out = 'HYCOM_test1.nc';
+
+% calculate time limits
+ timelimit  = [datenum(2012,1,1) datenum(2012,1,3)];
+ time_varname = 'time'; %Tell the code which variable contains time
+
+% set limits
+ lonlimit   = [-76 -70 ];
+ latlimit   = [32 39];
+ depthlimit = [0 100];
+
+ dim_limit_var = {'lon',   'lat',    'depth',    'time' };
+ dim_limit_val = {lonlimit, latlimit, depthlimit, timelimit};
+
+% variable to be downloaded
+ var_download = {'water_temp','lon','lat','depth','time'}; % empty indicates downloading all variables
+
+% Variables that should be downloaded block by block
+ var_divided  = var_download;
+ 
+
+% which dim you'd like to download block by block (e.g., 'time', or 'depth')
+divided_dim_str = 'depth';
+
+% max size of each "piece"
+N_divided_rec_per_group = 2;
+
+ FUN_nc_OpenDAP_with_limit( opendapURL, filename_out, dim_limit_var, dim_limit_val, var_download, var_divided, divided_dim_str, N_divided_rec_per_group, 'time_var_name', time_varname);
+```
+
+
+
 ### 3.2 Merge multiple netCDF files in time (`FUN_nc_merge`)
 
 `FUN_nc_merge( input_dir, filelist, output_fn, merge_dim_name, compatibility_mode )`
