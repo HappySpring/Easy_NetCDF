@@ -20,6 +20,7 @@ function filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( pregen
 % OUTPUT:
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
 % -------------------------------------------------------------------------
+% v2.01 by L. Chi  add error info for nonexisting variables
 % v2.00 by L. Chi  updated to be compatible with format v2 created by 'FUN_nc_gen_presaved_netcdf_info_v2'
 % V1.01 by L. Chi. Fix a bug
 %                  The function may return error unexpectedly when both 
@@ -49,9 +50,13 @@ end
 % ### Open NetCDF
 
     var_ind = FUN_struct_find_field_ind( pregen_info.var, 'Name', varname );
-    
+
     if length( var_ind ) ~= 1
         error('Error in variable name');
+    end
+
+    if ~isempty( varname ) && isnan( var_ind )
+        error(['Varname: ' varname ' cannot be found!'])
     end
     
     if ~isempty( varname )

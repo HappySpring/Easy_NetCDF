@@ -3,6 +3,12 @@ function pregen_info = FUN_nc_gen_presaved_netcdf_info_v2( filelist, merge_dim_n
 % This is an internal function called by FUN_nc_varget_enhanced_region_2_multifile
 % Please refer to the comments in "FUN_nc_varget_enhanced_region_2_multifile.m" for input parameters.
 %
+%
+% 2024-07-31 v2.10 by L. Chi
+%                             In windows system, the path separator is
+%                             converted to "/". So the generated presaved
+%                             info works on both windows and linux.
+%                             
 % 2023-11-19 v2.00 by L. Chi. Remove duplicated information saved in
 %                                 pregen_info variable, which is ~ 10% of
 %                                 the previous ones. 
@@ -521,6 +527,25 @@ pregen_info.dim(mdimid).length = nm;
 pregen_info.merge_dim.value = tmp_dim_merged_val;
 pregen_info.merge_dim.length= nm;
 pregen_info.merge_dim.files = tmp_dim_merged_fileID;
+
+%% 
+% =========================================================================
+% # update file path
+% =========================================================================
+if ispc  
+    disp(' [Current system: windows] The path separator "\" will be replaced by linux path separator "/"');
+    disp('   matlab is able to handle "/" in Windows properly, however, a separator of "/" causes problems in Linux.');
+    disp('   This will make sure the generated presaved netcdf info works on both Windows and Linux');
+
+    for ii = 1:length( pregen_info.file )
+        
+        pregen_info.file(ii).path = strrep( pregen_info.file(ii).path, '\', '/');
+
+    end
+
+end
+
+
 %% 
 % =========================================================================
 % # Output

@@ -6,7 +6,7 @@ This is a set of [matlab](https://www.mathworks.com) functions to make it easier
 
 ### Highlighted Features
 
-+ Load varialbes in a customed region across multiple files quickly.
++ Load variables in a customed region across multiple files quickly.
 + Enhanced feature for downloadeding NetCDF files via OpenDAP.
 
 ### Features
