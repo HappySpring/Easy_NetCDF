@@ -390,29 +390,14 @@ for iv = 1:length(info0.Variables)
 
     % searching variable tpye from netcdf.getConstantNames
     if ~is_dv_success
-        
+
         disp('finding data type by searching netcdf.getConstantNames')
 
-        tem_vid1 = netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
-        [~, tem_xtype, ~, ~] = netcdf.inqVar( ncid0, tem_vid1 );
+        var_type = FUN_nc_get_var_type_by_name( ncid0, info0.Variables(iv).Name );
 
-        tem_nc_constant_names = netcdf.getConstantNames;
-        for cc = 1:length( tem_nc_constant_names )
-            tem_nc_constant_value{cc} = netcdf.getConstant(tem_nc_constant_names{cc});
-        end
-
-        tem_type_ind = find( cellfun( @(x)isequal(x, tem_xtype), tem_nc_constant_value ) );
-        
-        if isscalar( tem_type_ind )
-            var_type = tem_nc_constant_names{tem_type_ind};
-            disp(['datatype for var [' info0.Variables(iv).Name '] is [' var_type ']'])
-        else
-            error(['Cannot found the variable type ' tem_xtype ' from netcdf.getConstantNames!'])
-        end
-
+        disp(['datatype for var [' info0.Variables(iv).Name '] is [' var_type ']']);
     end
-
-
+    
     varID1 = netcdf.defVar( ncid1, ...
         info0.Variables(iv).Name, ...
         var_type, ...

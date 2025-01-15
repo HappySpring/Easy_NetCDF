@@ -26,7 +26,9 @@ function FUN_nc_copy_with_limit_SP_select_by_layer( filename0, filename1, dim_li
 %
 %     FUN_nc_copy_with_limit( filename0, filename1, dim_limit_var, dim_limit_val  )
 % -------------------------------------------------------------------------
-% % By L.Chi V1.00 2016-10-24 (L.Chi.Ocean@outlook.com)
+
+% By L. Chi, v1.01 2025-01-15: support rare data types
+% By L. Chi, V1.00 2016-10-24 (L.Chi.Ocean@outlook.com)
 
 
 %% set default value 
@@ -142,9 +144,18 @@ for iv = 1:length(info0.Variables)
         netcdf.reDef(ncid1)
     %end
     
+    [var_type, is_dv_success] = FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype);
+
+    % searching variable tpye from netcdf.getConstantNames
+    if ~is_dv_success
+        disp('finding data type by searching netcdf.getConstantNames')
+        var_type = FUN_nc_get_var_type_by_name( ncid0, info0.Variables(iv).Name );
+        disp(['datatype for var [' info0.Variables(iv).Name '] is [' var_type ']']);
+    end
+
     varID1 = netcdf.defVar( ncid1, ...
         info0.Variables(iv).Name, ...
-        FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype), ...
+        var_type, ...
         dimID1( VarDimIND_now ) );
     
     netcdf.defVarDeflate( ncid1, varID1, true, true, 1);%compression level-1 basic

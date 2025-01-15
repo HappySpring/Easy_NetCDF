@@ -57,6 +57,7 @@ function FUN_nc_merge_save_mean( input_dir, filelist, output_fn, merge_dim_name,
 %
 % =========================================================================
 
+% V1.22 2025-01-15 by L. Chi: support rare data types
 % V1.21 2021-07-20 By L. Chi: support more styles of filelist. It could be
 %                             cells, structures (by dir) or an string array
 %                             now.
@@ -211,7 +212,7 @@ for ii = 1:length(info0.Dimensions)
     end
 end
 
-netcdf.close( ncid0 );
+% netcdf.close( ncid0 );
 %% open new file and write dimensions
 if compatibility_mode == 1
     ncid1 = netcdf.create( output_fn, 'CLOBBER' );
@@ -281,7 +282,17 @@ for iv = 1:length(info0.Variables)
         disp('For the variables which will be averaged, their types are forced to be double!')
         data_type_now = FUN_nc_defVar_datatypeconvert('double');
     else
-        data_type_now =FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype);
+        
+        % find data type
+        [data_type_now, is_dv_success] = FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype);
+        % searching variable tpye from netcdf.getConstantNames
+        if ~is_dv_success
+            disp('finding data type by searching netcdf.getConstantNames')
+            data_type_now = FUN_nc_get_var_type_by_name( ncid0, info0.Variables(iv).Name );
+            disp(['datatype for var [' info0.Variables(iv).Name '] is [' var_type ']']);
+        end
+    
+        %data_type_now = FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype);
     end
     
     varID1 = netcdf.defVar( ncid1, ...
@@ -401,14 +412,15 @@ for iv = 1:length(info0.Variables)
         
     else
         disp(['Loading from the sample file: ' sample_fn])
-        ncid0 = netcdf.open( sample_fn, 'NOWRITE' );
+        %ncid0 = netcdf.open( sample_fn, 'NOWRITE' );
         varID0 = netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
         var_value = netcdf.getVar( ncid0, varID0 );
         netcdf.putVar( ncid1, varID1, var_value);
-        netcdf.close( ncid0 );
+        %netcdf.close( ncid0 );
     end
     
     clear VarDim_now VarDimIND_now varID1 varID0 var_value
 end
 
+netcdf.close(ncid0);
 netcdf.close(ncid1);

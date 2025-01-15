@@ -63,6 +63,8 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+
+% By L. Chi, v1.65 2025-01-15: support rare data types
 % By L. Chi, V1.64 2022-08-06: add new parameter: "fun_handle_retry_too_many_times"
 %                              The behaviors after exceeding max retry
 %                              counts can be customed.
@@ -382,15 +384,29 @@ for iv = 1:length(info0.Variables)
         netcdf.reDef(ncid1)
     end
     
+    [var_type, is_dv_success] = FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype);
+
+    % searching variable tpye from netcdf.getConstantNames
+    if ~is_dv_success
+
+        disp('finding data type by searching netcdf.getConstantNames')
+
+        var_type = FUN_nc_get_var_type_by_name( ncid0, info0.Variables(iv).Name );
+
+        disp(['datatype for var [' info0.Variables(iv).Name '] is [' var_type ']']);
+    end
+    
+
+    
     if is_var_with_dim
         varID1 = netcdf.defVar( ncid1, ...
             info0.Variables(iv).Name, ...
-            FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype), ...
+            var_type, ...
             dimID1( VarDimIND_now ) );
     else
         varID1 = netcdf.defVar( ncid1, ...
             info0.Variables(iv).Name, ...
-            FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype), ...
+            var_type, ...
             [] );
     end
     
