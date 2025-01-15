@@ -226,7 +226,7 @@ data = FUN_nc_varget_enhanced_region( fn, 'sst', nc_start, nc_count, nc_stride);
 
 + varname   [char]: name of the variable (e.g., 'sst' or 'ssh')    
 
-+ dim_name  [cell]: name of dimensions related to the variable spcified above, like {'lon'}, {'lon','lat'}, {'lon', 'lat', 'depth, 'time'}. Dimensions with customed limits must be listed here here. Other dimensions are optional.
++ dim_name  [cell]: name of dimensions related to the variable specified above, like {'lon'}, {'lon','lat'}, {'lon', 'lat', 'depth, 'time'}. Dimensions with customed limits must be listed here here. Other dimensions are optional.
 
 + dim_limit [cell]: limits of dimensions in a cell. (e.g., {[-85 -55 ], [-inf inf]}). Please provide limits in the same order as they are listed in `dim_name`.
 
@@ -352,7 +352,7 @@ axis equal
             should set timelimit as [datenum(2000,2,15),
             datenum(2000,2,16)] if the tiem_var_name is set to "ob_time".
     
-     dim_varname   [cell, optional]: name of the variable defining the axis at each dimension.
+    dim_varname   [cell, optional]: name of the variable defining the axis at each dimension.
           + by default, each axis is defined by a variable sharing the same name as the dimension. 
           + "dim_varname{1} = nan" indicates that the axis is not defined
                not defined by any variable in file. It will be defined 
