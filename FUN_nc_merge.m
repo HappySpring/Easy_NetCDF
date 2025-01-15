@@ -59,6 +59,12 @@ function FUN_nc_merge( input_dir, filelist, output_fn, merge_dim_name, compatibi
 %      between files
 %
 %
+% 2024-01-15 v1.12 by L. Chi: fix a bug in merging files with variable type "NC_USHORT",
+%                             which is not included in "FUN_nc_defVar_datatypeconvert"
+%                             and ends up with an error. From this version, the
+%                             function searches netcdf.getConstantNames
+%                             to identify data type.
+%                             
 % 2022-10-29 V1.11 by L. Chi: support large file by parameter "N_record_per_IO" 
 %                             This only works for N_record_per_IO > 0.
 %
@@ -319,7 +325,7 @@ for ii = 1:length(info0.Dimensions)
     end
 end
 
-netcdf.close( ncid0 );
+
 %% open new file and write dimensions
 if compatibility_mode == 1
     ncid1 = netcdf.create( output_fn, 'CLOBBER' );
@@ -378,9 +384,38 @@ for iv = 1:length(info0.Variables)
         netcdf.reDef(ncid1)
     end
     
+    % find variable type from ncinfo: this works for most frequently
+    % adopted variables but may fail for some types of variables.
+    [var_type, is_dv_success] = FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype);
+
+    % searching variable tpye from netcdf.getConstantNames
+    if ~is_dv_success
+        
+        disp('finding data type by searching netcdf.getConstantNames')
+
+        tem_vid1 = netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
+        [~, tem_xtype, ~, ~] = netcdf.inqVar( ncid0, tem_vid1 );
+
+        tem_nc_constant_names = netcdf.getConstantNames;
+        for cc = 1:length( tem_nc_constant_names )
+            tem_nc_constant_value{cc} = netcdf.getConstant(tem_nc_constant_names{cc});
+        end
+
+        tem_type_ind = find( cellfun( @(x)isequal(x, tem_xtype), tem_nc_constant_value ) );
+        
+        if isscalar( tem_type_ind )
+            var_type = tem_nc_constant_names{tem_type_ind};
+            disp(['datatype for var [' info0.Variables(iv).Name '] is [' var_type ']'])
+        else
+            error(['Cannot found the variable type ' tem_xtype ' from netcdf.getConstantNames!'])
+        end
+
+    end
+
+
     varID1 = netcdf.defVar( ncid1, ...
         info0.Variables(iv).Name, ...
-        FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype), ...
+        var_type, ...
         dimID1( VarDimIND_now ) );
     
     if compatibility_mode == 1
@@ -506,14 +541,15 @@ for iv = 1:length(info0.Variables)
         end
     else
         disp(['Loading from the sample file: ' sample_fn])
-        ncid0 = netcdf.open( sample_fn, 'NOWRITE' );
+        %ncid0 = netcdf.open( sample_fn, 'NOWRITE' );
         varID0 = netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
         var_value = netcdf.getVar( ncid0, varID0 );
         netcdf.putVar( ncid1, varID1, var_value);
-        netcdf.close( ncid0 );
+        %netcdf.close( ncid0 );
     end
     
     clear VarDim_now VarDimIND_now varID1 varID0 var_value
 end
 
+netcdf.close(ncid0);
 netcdf.close(ncid1);

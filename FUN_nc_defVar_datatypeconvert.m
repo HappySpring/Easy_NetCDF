@@ -1,4 +1,4 @@
-function out_type = FUN_nc_defVar_datatypeconvert(in_type)
+function [out_type, is_success] = FUN_nc_defVar_datatypeconvert(in_type)
 % out_type = FUN_nc_defVar_datatypeconvert(in_type)
 %   convert name of variable types in matlab to that in netcdf.
 % -------------------------------------------------------------------------
@@ -7,16 +7,20 @@ function out_type = FUN_nc_defVar_datatypeconvert(in_type)
 % -------------------------------------------------------------------------
 % OUTPUT:
 %   out_type: name of variable types for writting netcdf
+%   is_success: whether the correct datatype has been found or not!
 % -------------------------------------------------------------------------
 % REF:
 %   Details see here: http://www.mathworks.com/help/matlab/ref/netcdf.defvar.html
 %   More details see here: https://www.mathworks.com/help/matlab/ref/nccreate.html
 %
+% V1.02 by L. Chi: add an output variable is_success
 % V1.01 by L. Chi: remove warning messages if the built-in variable type
 % (like NC_FLOAT) is used.
 % V1.00 by L. Chi (L.Chi.Ocean@outlook.com)
 
 matlab_built_in_nc_types = {'NC_DOUBLE', 'NC_FLOAT', 'NC_INT64', 'NC_UINT64', 'NC_INT', 'NC_SHORT', 'NC_USHORT', 'NC_BYTE', 'NC_UBYTE', 'NC_CHAR', 'NC_STRING'};
+
+is_success = true;
 
 if strcmp( in_type,'double' )
     out_type = 'double';
@@ -52,4 +56,6 @@ elseif ismember( upper(in_type), upper(matlab_built_in_nc_types) )
 else
     warning('Unsupported data type')
     out_type = in_type;
+
+    is_success = false;
 end

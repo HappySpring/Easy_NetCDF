@@ -28,6 +28,10 @@ function FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit
 %     FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit_val  )
 % -------------------------------------------------------------------------
 %
+% V1.21 by L. Chi:
+%       It is possible to specify a dimension whose chunksize will be
+%       forced to 1. see optional paramter "chunksize1_dim_name".
+%
 % V1.20 by L. Chi:
 %       Estimate the chunksize automatically.
 %       (Please not that if the chunksize in the sources (filename0) will not be used in the destination (filename1))
@@ -46,8 +50,19 @@ end
 % is_auto_chunksize: replace the default setting for chunksize by a customed equation in Easy_NetCDF
 [is_auto_chunksize, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_chunksize', false );
 
+[chunksize1_dim_name, varargin] = FUN_codetools_read_from_varargin( varargin, 'chunksize1_dim_name', [] );
+
 % is_add_preset_att: add some preset attributes in the output files, like "Copy Source", "Copy Date", "Copy Range". 
 [is_add_preset_att, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_add_preset_att', true );
+
+
+% variables to be included. var_included is empty => including all
+% variables
+[var_included, varargin] = FUN_codetools_read_from_varargin( varargin, 'var_included', {} );
+
+% variables to be exclueded
+[var_excluded, varargin] = FUN_codetools_read_from_varargin( varargin, 'var_excluded', {} );
+
 
 if length( varargin ) > 0
     error('Unkown parameters found!')
@@ -119,6 +134,20 @@ end
 %% load/write variable
 for iv = 1:length(info0.Variables)
     
+    if isempty( var_included ) || any(strcmpi( var_included, info0.Variables(iv).Name ) )
+        
+    else
+        fprintf(' var %s is skipped since it is not listed in "var_included" \n', info0.Variables(iv).Name)
+        continue
+    end
+
+    if ~isempty( var_excluded ) && any(strcmpi( var_excluded, info0.Variables(iv).Name ) )
+        fprintf(' var %s is skipped since it is listed in "var_excluded" \n', info0.Variables(iv).Name)
+        continue
+    end
+
+
+
    % Prepare for varialbes
     VarDim_now = info0.Variables(iv).Dimensions;
     if isempty( VarDim_now )
@@ -159,7 +188,23 @@ for iv = 1:length(info0.Variables)
     end
     
     % set chunk size (not necessary for non-dimensional var)
-    if is_auto_chunksize && is_var_with_dim
+    if ~isempty(chunksize1_dim_name)
+            
+        ind_dim_chunk1 = find(strcmpi({VarDim_now.Name},chunksize1_dim_name));
+        
+        if ~isempty( ind_dim_chunk1 )
+            
+            if length( VarDim_now ) == 1
+                % skip the variable with only one dimension, which is chunksize1_dim_name.
+            else
+                tmp_chunksize  = count;
+                tmp_chunksize(ind_dim_chunk1) = 1;
+                netcdf.defVarChunking( ncid1, varID1, 'CHUNKED', tmp_chunksize );
+            end
+        end
+
+    elseif is_auto_chunksize && is_var_with_dim
+
         tmp_bytes_per_val = FUN_nc_internal_bytes_per_value( info0.Variables(iv).Datatype );
         tmp_chunksize = FUN_nc_internal_calc_chunk( count, tmp_bytes_per_val );
         netcdf.defVarChunking( ncid1, varID1, 'CHUNKED', tmp_chunksize );
@@ -186,6 +231,7 @@ for iv = 1:length(info0.Variables)
     end
     
     netcdf.putVar( ncid1, varID1, var_value);
+    netcdf.sync( ncid1 );
     
     clear VarDim_now VarDimIND_now varID1 varID0 var_value
 end
