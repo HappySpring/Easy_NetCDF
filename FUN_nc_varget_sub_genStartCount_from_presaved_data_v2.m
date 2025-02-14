@@ -77,11 +77,16 @@ for ii = 1:length( var_dim_ind )
     tmp_ind = var_dim_ind(ii);
     
     if pregen_info.dim(tmp_ind).is_dim_merged
-        var_dim(ii).Name   = pregen_info.file(jj).dim(tmp_ind).name   ;
-        var_dim(ii).Length = pregen_info.file(jj).dim(tmp_ind).length ;
-        var_dim(ii).varname= pregen_info.file(jj).dim(tmp_ind).varname;
-        var_dim(ii).is_time= pregen_info.file(jj).dim(tmp_ind).is_time;
+        var_dim(ii).Name   = pregen_info.file(jj).dim.name   ;
+        var_dim(ii).Length = pregen_info.file(jj).dim.length ;
+        var_dim(ii).varname= pregen_info.file(jj).dim.varname;
+        var_dim(ii).is_time= pregen_info.file(jj).dim.is_time;
         dim_val_now = pregen_info.file(jj).dim.value;
+
+        if isscalar(pregen_info.file(jj).dim) && strcmpi(pregen_info.file(jj).dim.name, pregen_info.dim(tmp_ind).name )
+        else
+            error('debug error 01')
+        end
     
     else
         var_dim(ii).Name   = pregen_info.dim(tmp_ind).name   ;
