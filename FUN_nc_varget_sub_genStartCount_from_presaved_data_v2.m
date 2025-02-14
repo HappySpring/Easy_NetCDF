@@ -20,6 +20,7 @@ function filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( pregen
 % OUTPUT:
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
 % -------------------------------------------------------------------------
+% v2.10 by L. Chi: fix 2 bugs handling v2 data
 % v2.01 by L. Chi  add error info for nonexisting variables
 % v2.00 by L. Chi  updated to be compatible with format v2 created by 'FUN_nc_gen_presaved_netcdf_info_v2'
 % V1.01 by L. Chi. Fix a bug
@@ -63,7 +64,7 @@ end
         var_dim_ind = pregen_info.var(var_ind).Dim_ind;
     else
         for ii = 1:length( dim_name )
-            var_dim_ind(ii) = find( strcmpi( {pregen_info.file(1).dim(:).name}, dim_name{ii} ) );
+            var_dim_ind(ii) = find( strcmpi( {pregen_info.dim(:).name}, dim_name{ii} ) );
         end
     end
 
