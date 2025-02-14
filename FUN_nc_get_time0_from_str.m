@@ -33,6 +33,8 @@ function [time0, unit_str, unit_to_day, dt] = FUN_nc_get_time0_from_str( time_st
 % -------------------------------------------------------------------------
 % by L. Chi
 
+% V1.20 2024-02-15: + replace strcmp by strcmpi
+%                   + force time_str in char format
 % V1.19 2021-08-03: + Add dt in the class of duration.
 %                   + add new unit: hour.
 %
@@ -60,10 +62,17 @@ function [time0, unit_str, unit_to_day, dt] = FUN_nc_get_time0_from_str( time_st
 % V1.00 2015-11-30 by L. Chi (L.Chi.Ocean@outlook.com)
 % =========================================================================
 
+% ==== # make sure time_str is a char variable. ====
+% in some cases, it may be a string variable. This will cause error in extracing a subset of the characters. 
+	if ischar(time_str)
+	else
+		time_str = char(time_str);
+	end
+
 % ==== # Find strings for starting time ===================================
     loc_since = strfind( time_str, 'since');
     time0_str = time_str( loc_since + length('since'):end );
-
+	
 
 % ==== # detect time format and convert strings into time =================
     % ** The order of pattern matters **
@@ -137,35 +146,35 @@ function [time0, unit_str, unit_to_day, dt] = FUN_nc_get_time0_from_str( time_st
 
     unit_str = time_str( 1: loc_since-2);
 
-    if strcmp( unit_str, 'msec' )
+    if strcmpi( unit_str, 'msec' )
         unit_to_day = 1/24/3600/1000;
         dt = milliseconds;
         
-    elseif strcmp( unit_str, 'seconds' )
+    elseif strcmpi( unit_str, 'seconds' )
         unit_to_day = 1/24/3600;
         dt = seconds;
         
-    elseif strcmp( unit_str, 'minutes' )
+    elseif strcmpi( unit_str, 'minutes' )
         unit_to_day = 1/24/60;
         dt = minutes;
         
-    elseif strcmp( unit_str, 'hours' )
+    elseif strcmpi( unit_str, 'hours' )
         unit_to_day = 1/24;
         dt = hours;
         
-    elseif strcmp( unit_str, 'hour' )
+    elseif strcmpi( unit_str, 'hour' )
         unit_to_day = 1/24;
         dt = hours;
         
-    elseif strcmp( unit_str, 'days' )
+    elseif strcmpi( unit_str, 'days' )
         unit_to_day = 1;
         dt = days;
         
-    elseif strcmp( unit_str, 'months' )
+    elseif strcmpi( unit_str, 'months' )
         unit_to_day = []; %
         dt = months;
         
-    elseif strcmp( unit_str, 'years' )
+    elseif strcmpi( unit_str, 'years' )
         unit_to_day = [];
         dt = years;
         
