@@ -16,6 +16,7 @@ function FUN_nc_easywrite_enhanced( filename, dim_name, dim_length, varname, dim
 %     
 %
 
+% 2025-02-23 v1.21 by L. Chi: fix a bug in handling 1-D variables
 % 2022-08-18 V1.20 by L. Chi: support unlimited size of dimension (defined by inf in dim_length)
 % 2021-05-31 V1.11 by L. Chi: fix a bug in writting global attributes.
 % xxxx-xx-xx V1.10 by L. Chi: support parameter `is_auto_chunksize`: estimating the chunksize automatically. 
@@ -142,9 +143,15 @@ for ivar = 1:length(varname)
     nc_count    = size(data{ivar});
     
     if length(dimID( dimNum_of_var{ivar} )) == 1
-        nc_start = nc_start(1);
-        nc_stride= nc_stride(1);
-        nc_count = nc_count(1);        
+        
+        if sum( size(nc_count) > 1 ) <= 1
+        else
+            error
+        end
+
+        nc_start = unique(nc_start);
+        nc_stride= unique(nc_stride);
+        nc_count = max(nc_count);        
     end
     
     netcdf.putVar( ncid, varid(ivar), nc_start(:)', nc_count(:)', nc_stride(:)',  data{ivar} );

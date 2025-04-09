@@ -1,6 +1,14 @@
 function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname, varargin )
 % [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname )
 % 
+%
+%
+% ===============================================
+% KNOWN problem
+% ===============================================
+%  dim_varname = nan does not work with pre-saved filelist info. 
+%
+%
 % [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( presaved_info, varname, dim_name, dim_limit )
 %
 %
@@ -284,7 +292,10 @@ if isstruct( filelist ) && isfield( filelist, 'var' ) && isfield( filelist, 'fil
     end
 
     % check variable for time
-    if ( ~isempty( time_var_name ) && ~strcmpi( time_var_name, presaved_info.merge_dim.name) ) ||(  ~isempty( dim_varname ) && ~isequal( dim_varname, dim_name ) ) % dim_varname is set to dim_name by default
+    if ~isempty( dim_varname )
+        temloc5 = ~cellfun(@(x)any(isnan(x)), dim_varname);
+    end
+    if ( ~isempty( time_var_name ) && ~strcmpi( time_var_name, presaved_info.merge_dim.name) ) ||(  ~isempty( dim_varname ) && ~isequal( dim_varname(temloc5), dim_name(temloc5) ) ) % dim_varname is set to dim_name by default
         error(' time_var_name & dim_varname should be defined when the pre-saved .mat file is generated! They cannot be defined here!')
     end
     
