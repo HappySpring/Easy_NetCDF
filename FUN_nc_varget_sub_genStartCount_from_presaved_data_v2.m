@@ -1,4 +1,4 @@
-function filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( pregen_info, varname, dim_name, dim_limit )
+function filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( pregen_info, varname, dim_name, dim_limit, dim_varname )
 % var_dim = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( fn, dim_name, dim_limit, time_var_name, dim_varname )
 % This is called by FUN_nc_varget_enhanced_region_2_multifile
 % -------------------------------------------------------------------------
@@ -46,6 +46,16 @@ else
     error('Each dim_name must be assocated with one dim_limit'); 
 end
 
+if ~exist('dim_varname','var')
+    dim_varname = [];
+end
+
+
+if ~isempty(dim_varname)
+    is_override_dim = true;
+else
+    is_override_dim = false;
+end
 %% ## prepare dimensions
 
 % ### Open NetCDF
@@ -76,13 +86,30 @@ for jj = 1:length( pregen_info.file )
 for ii = 1:length( var_dim_ind )
     
     tmp_ind = var_dim_ind(ii);
-    
+
     if pregen_info.dim(tmp_ind).is_dim_merged
         var_dim(ii).Name   = pregen_info.file(jj).dim.name   ;
         var_dim(ii).Length = pregen_info.file(jj).dim.length ;
         var_dim(ii).varname= pregen_info.file(jj).dim.varname;
         var_dim(ii).is_time= pregen_info.file(jj).dim.is_time;
-        dim_val_now = pregen_info.file(jj).dim.value;
+
+        if is_override_dim
+            dim_or_ind = find( strcmp(  var_dim(ii).Name, dim_name ) ); % dim override ind
+            if ~isempty(dim_or_ind)
+                dim_or_id_kind = dim_varname{dim_or_ind};
+
+                if strcmpi(dim_or_id_kind, var_dim(ii).Name)
+                    dim_or_ind = [];
+                end
+            end
+        end
+
+
+        if ~is_override_dim || isempty(dim_or_ind)
+            dim_val_now = pregen_info.file(jj).dim.value;
+        else
+            error('This should not be applied to the merged dim!')
+        end
 
         if isscalar(pregen_info.file(jj).dim) && strcmpi(pregen_info.file(jj).dim.name, pregen_info.dim(tmp_ind).name )
         else
@@ -94,7 +121,32 @@ for ii = 1:length( var_dim_ind )
         var_dim(ii).Length = pregen_info.dim(tmp_ind).length ;
         var_dim(ii).varname= pregen_info.dim(tmp_ind).varname;
         var_dim(ii).is_time= pregen_info.dim(tmp_ind).is_time;
-        dim_val_now        = pregen_info.dim(tmp_ind).value  ;
+        
+        if is_override_dim
+            dim_or_ind = find( strcmp(  var_dim(ii).Name, dim_name ) ); % dim override ind
+            if ~isempty(dim_or_ind)
+                dim_or_id_kind = dim_varname{dim_or_ind};
+
+                if strcmpi(dim_or_id_kind, var_dim(ii).Name)
+                    dim_or_ind = [];
+                end
+            end
+        end
+
+
+        if ~is_override_dim || isempty(dim_or_ind)
+            dim_val_now = pregen_info.dim(tmp_ind).value  ;
+        elseif isnan(dim_or_id_kind)
+            dim_val_now = 1:var_dim(ii).Length  ;
+
+        elseif isnumeric(dim_or_id_kind)
+            dim_val_now = dim_or_id_kind  ;
+
+        else
+            error('Unknown parrameter!')
+        end
+
+        
     end
 
     var_dim(ii).originalVal = dim_val_now;

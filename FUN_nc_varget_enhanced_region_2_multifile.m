@@ -357,7 +357,7 @@ if is_load_presaved_info == true
     if strcmpi( pregen_data_format, 'v1' )
         var_dim0 = FUN_nc_varget_sub_genStartCount_from_presaved_data( tmp_presaved_info, varname, dim_name, dim_limit );
     elseif strcmpi( pregen_data_format, 'v2' )
-        var_dim0 = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( tmp_presaved_info, varname, dim_name, dim_limit );
+        var_dim0 = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( tmp_presaved_info, varname, dim_name, dim_limit, dim_varname );
     else
         error;
     end
