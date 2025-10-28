@@ -16,6 +16,10 @@ function FUN_nc_easywrite_enhanced( filename, dim_name, dim_length, varname, dim
 %     
 %
 
+% 2025-10-17 v1.22 by L. Chi: add new parameter: force_chunksize_by_dim
+%                             empty variable will not be put into the file
+%                             (and won't cause an error). This is used to
+%                             create empty file
 % 2025-02-23 v1.21 by L. Chi: fix a bug in handling 1-D variables
 % 2022-08-18 V1.20 by L. Chi: support unlimited size of dimension (defined by inf in dim_length)
 % 2021-05-31 V1.11 by L. Chi: fix a bug in writting global attributes.
@@ -25,7 +29,14 @@ function FUN_nc_easywrite_enhanced( filename, dim_name, dim_length, varname, dim
 
 
 %% set default value 
+
+% use a customed function to calculate the best chunksize
 [is_auto_chunksize, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_chunksize', false, true );
+
+% provide a chunksize for each dimension manually.
+% for example, force_chunksize_by_dim = [ 100 100 1 ], where dim_name = {'lon','lat','time}
+[force_chunksize_by_dim,   varargin] = FUN_codetools_read_from_varargin( varargin, 'force_chunksize_by_dim', [], true );
+
 
 if ~isempty( varargin )
     error('Unkown parameters found!')
@@ -108,7 +119,12 @@ end
 for ivar = 1:length(varname)
 
     % set chunk size (not necessary for non-dimensional var)
-    if is_auto_chunksize
+
+    if ~isempty(force_chunksize_by_dim)
+
+        netcdf.defVarChunking( ncid, varid(ivar), 'CHUNKED', force_chunksize_by_dim(dimNum_of_var{ivar}) );
+
+    elseif is_auto_chunksize
 
         try
             data_type = FUN_nc_defVar_datatypeconvert( class(data{ivar}) );
@@ -154,7 +170,9 @@ for ivar = 1:length(varname)
         nc_count = max(nc_count);        
     end
     
-    netcdf.putVar( ncid, varid(ivar), nc_start(:)', nc_count(:)', nc_stride(:)',  data{ivar} );
+    if ~isempty(data{ivar})
+        netcdf.putVar( ncid, varid(ivar), nc_start(:)', nc_count(:)', nc_stride(:)',  data{ivar} );
+    end
 end
 
 

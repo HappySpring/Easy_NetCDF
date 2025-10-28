@@ -4,6 +4,7 @@ function pregen_info = FUN_nc_gen_presaved_netcdf_info_v2( filelist, merge_dim_n
 % Please refer to the comments in "FUN_nc_varget_enhanced_region_2_multifile.m" for input parameters.
 %
 %
+% 2025-09-30 v2.11 by L. Chi: fix a typo in comments.
 % 2024-07-31 v2.10 by L. Chi
 %                             In windows system, the path separator is
 %                             converted to "/". So the generated presaved
@@ -38,10 +39,10 @@ function pregen_info = FUN_nc_gen_presaved_netcdf_info_v2( filelist, merge_dim_n
 %     output_file_path = 'Presaved_info_demo.mat';
 % 
 %     % Please note that **absolute** file paths are saved in the generated file. If you moved the data, you need to run this again
-%     pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path );
+%     pregen_info = FUN_nc_gen_presaved_netcdf_info_v2( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path );
 %     
 %     % with relative path
-%     pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path, 'path_relative_to', pwd );
+%     pregen_info = FUN_nc_gen_presaved_netcdf_info_v2( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path, 'path_relative_to', pwd );
 
 %% 
 % =========================================================================
