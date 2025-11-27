@@ -10,6 +10,9 @@ function FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit
 %   dim_limit_val  [cell]: the limit of each axises
 %   is_compressed_output : True: variables in the output file will be compressed, 
 %        (The nondemensional variables will not be compressed even if it is set to true);
+%    
+%   More optional parameters can be found in optional parameters section below.
+%
 % -------------------------------------------------------------------------
 %  Output: None
 %
@@ -28,6 +31,8 @@ function FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit
 %     FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit_val  )
 % -------------------------------------------------------------------------
 %
+% v1.23 by L. Chi: support copy variables by indexes at specific dimensions, see "dim_varname" below
+%
 % v1.22 by L. Chi: support rare data types
 % V1.21 by L. Chi:
 %       It is possible to specify a dimension whose chunksize will be
@@ -43,10 +48,25 @@ function FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit
 % By L.Chi V1.00 2016-10-24 (L.Chi.Ocean@outlook.com)
 % -------------------------------------------------------------------------
 
-% default value
+% ---- default values --------------------------------------------------
 if ~exist('is_compressed_output','var') || isempty( is_compressed_output )
     is_compressed_output = true;
 end
+
+
+% ---- optional parameters --------------------------------------------------
+
+%      dim_varname   [cell, optional]: name of the variable defining the axis at each dimension.
+%           + by default, each axis is defined by a variable sharing the same name as the dimension. 
+%           + "dim_varname{1} = nan" will force the dimension assicated with 
+%             an vector defined as 1, 2, 3, ... Nx, where Nx is the length
+%             of the dimension, ingnoring the variable shares the same name
+%             with this dimension (if it exists)
+%           + dim_varname can also caontain arrays to set the longitude,
+%           latitude, time, etc, manually instead of reading them from the
+%           netcdf file. E.g., dim_varname = { [-82:1/4:-55], [26:1/4:45]};
+[dim_varname, varargin] = FUN_codetools_read_from_varargin( varargin, 'dim_varname', dim_limit_name );
+
 
 % is_auto_chunksize: replace the default setting for chunksize by a customed equation in Easy_NetCDF
 [is_auto_chunksize, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_chunksize', false );
@@ -63,7 +83,6 @@ end
 
 % variables to be exclueded
 [var_excluded, varargin] = FUN_codetools_read_from_varargin( varargin, 'var_excluded', {} );
-
 
 if length( varargin ) > 0
     error('Unkown parameters found!')
@@ -83,19 +102,38 @@ for ii = 1:length(info0.Dimensions)
     
     if any( dim_cmp_loc )
         % load by part
+
+        % interface
         tem = 1:length(dim_limit_name);
         ij  = tem(dim_cmp_loc);% for dim_limit_name & dim_limit_val
         
-        var_str_now = dim_limit_name{ij};
-        varid_now = netcdf.inqVarID(ncid0, var_str_now ) ;
-        var_now = netcdf.getVar(ncid0, varid_now ) ;
+        dim_name_now    = dim_limit_name{ij};
+        dim_varname_now = dim_varname{ij};
+        
+        % determine the dimension variable 
+        if ischar(dim_varname_now) || isstring(dim_varname_now)
+            varid_now = netcdf.inqVarID(ncid0, dim_varname_now ) ;
+            var_now = netcdf.getVar(ncid0, varid_now ) ;
+
+        elseif isnan(dim_varname_now)
+            dimid_now = netcdf.inqDimID(ncid0, dim_name_now ) ;
+            [~, dimlen] = netcdf.inqDim(ncid0, dimid_now);
+            var_now   = 1:dimlen;
+           
+        elseif isnumeric(dim_varname_now)
+            var_now = dim_varname_now;
+
+        else
+            error('dim_varname can only be char, nan, or numeric array!')
+        end
+
         
         [start, count, ind] = FUN_nc_varget_sub_genStartCount( var_now, dim_limit_val{ij} );
         
-        info1.Dim(ii).Name        = var_str_now;
+        info1.Dim(ii).Name        = dim_name_now;
         info1.Dim(ii).Length      = count;
         info1.Dim(ii).MatInd      = ii;  % Location of this variable in the Dim Matrix
-        info1.Dim(ii).originalVal = var_now;
+        %info1.Dim(ii).originalVal = var_now;
         info1.Dim(ii).start       = start;
         info1.Dim(ii).count       = count;
         info1.Dim(ii).ind         = ind;
@@ -105,7 +143,7 @@ for ii = 1:length(info0.Dimensions)
         info1.Dim(ii).Name        = info0.Dimensions(ii).Name;
         info1.Dim(ii).Length      = info0.Dimensions(ii).Length;
         info1.Dim(ii).MatInd      = ii;
-        info1.Dim(ii).originalVal = [];
+        %info1.Dim(ii).originalVal = [];
         info1.Dim(ii).start       = 0;
         info1.Dim(ii).count       = info1.Dim(ii).Length;
         info1.Dim(ii).ind         = 1:info1.Dim(ii).Length ;
