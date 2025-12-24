@@ -27,6 +27,14 @@ function filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data( pregen_in
 % V1.00 by L. Chi. This is extracted from "FUN_nc_varget_enhanced_region_2.m"
 % (L.Chi.Ocean@outlook.com)
 
+% ===========================
+% Deprecation warning
+% ===========================
+%
+% Please note that this function is deprecated. Please use the updated version (v2) instead.
+%   The preasved filelist need to be re-created by FUN_nc_gen_presaved_netcdf_info_v2.m
+%   And it will be read by FUN_nc_varget_sub_genStartCount_from_presaved_data_v2.m
+
 warning('This function is deprecated. Please use FUN_nc_varget_sub_genStartCount_from_presaved_data_v2 instead. The preasved filelist need to be re-created by FUN_nc_gen_presaved_netcdf_info_v2');
 
 %% ## Set default value

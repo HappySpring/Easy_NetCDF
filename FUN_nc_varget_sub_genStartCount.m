@@ -5,7 +5,6 @@ function [start, count, xloc] = FUN_nc_varget_sub_genStartCount( x, xlimit )
 % xloc is the location of selected x based on xlimit: x(xloc);
 %
 % V1.44 by L. Chi
-%   Extend the feature introduced in v1.43
 %   add support for unconstructed grids: if xlimit has more than 2 elements,
 %      treat it as a list of explicit indexes (1-based) into x.
 %      This allows non-contiguous reads from unconstructed grids.
@@ -13,7 +12,6 @@ function [start, count, xloc] = FUN_nc_varget_sub_genStartCount( x, xlimit )
 %      When xlimit is a list of explicit indices, start = nan and count > 1.
 %
 % V1.43 by L. Chi
-%   Extend the feature introduced in v1.41
 %   Even if x is not monotonic, a warning message, instead of an errow, will
 %      be triggered if x is monotonic within `xlimit`
 %   Like v1.41, this is introduced to override some bugs in HYCOM data (e.g, exp 93.0)

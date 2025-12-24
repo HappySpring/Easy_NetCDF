@@ -24,6 +24,9 @@ function var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname,
 % OUTPUT:
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
 % -------------------------------------------------------------------------
+
+% v1.20 by L. Chi, 2025-12-24
+%                  updated to be compatible with new feature: read data from incontinuous index in dim_limit input.
 % V1.03 by L. Chi. Fix a bug. The limit for time may not be applied
 %                  properly when `time_var_name` is named differently from
 %                  the dimension for time.

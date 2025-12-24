@@ -11,6 +11,9 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
 %      varname   [char]: name of the variable (e.g., 'sst' or 'ssh')
 %      dim_name  [cell]: name of dimensions, like {'lon','lat'}
 %      dim_limit [cell]: limit of dimensions. (e.g., {[-85 -55 ], [-inf inf]})
+%                        + It can be empty, indicating no limit for all dimensions.
+%                        + For any specific dimension, the limit contains more than 2 values, 
+%                          it will be treated as a list of discrete indexes to be read from the file.
 % 
 %      time_var_name [char, optional]: name of the time axis
 %           + variable defined by this will be loaded into time in matlab format (days since 0000-01-00)
@@ -49,6 +52,8 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
 % 
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
+% V2.20 by L. Chi, 2025-12-24
+%          + Support discrete indexes in dim_limit input.
 % V1.24 by L. Chi, 2021-08-10: filename can be a 1x1 struct (e.g., results from dir('a.nc') )
 % V1.23 by L. Chi
 %          + The axis associated with a dimension specificed in dim_name
@@ -112,9 +117,9 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
 % ## Prepare variable -----------------------------------------------------
 
 %% load data
-    nc_start = [ var_dim(:).start ];
-    nc_count = [ var_dim(:).count ];
-    nc_strid = ones(size(nc_start));
+    %nc_start = [ var_dim(:).start ];
+    %nc_count = [ var_dim(:).count ];
+    %nc_strid = ones(size(nc_start));
     %data = FUN_nc_varget_enhanced_region( filename, varname, nc_start, nc_count, nc_strid );
     data = FUN_nc_varget_from_vardiminfo( filename, varname, var_dim );
 

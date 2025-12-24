@@ -5,7 +5,7 @@
 
 function data = FUN_nc_varget_from_vardiminfo( fn, varname, var_dim_info )
 % data = FUN_nc_varget_from_vardiminfo( fn, varname, var_dim_info )
-% 
+% read data from the var_dim_info prepared by other functions in this toolbox.
 % V1.00 by L. Chi
 
 % Check for non-contiguous dimensions (start is nan)

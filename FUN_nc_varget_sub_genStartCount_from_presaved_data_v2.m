@@ -20,6 +20,8 @@ function filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( pregen
 % OUTPUT:
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
 % -------------------------------------------------------------------------
+% v2.11 by L. Chi, 2025-12-24
+%                  updated to be compatible with new feature: read data from incontinuous index in dim_limit input.
 % v2.10 by L. Chi: fix 2 bugs handling v2 data
 % v2.01 by L. Chi  add error info for nonexisting variables
 % v2.00 by L. Chi  updated to be compatible with format v2 created by 'FUN_nc_gen_presaved_netcdf_info_v2'

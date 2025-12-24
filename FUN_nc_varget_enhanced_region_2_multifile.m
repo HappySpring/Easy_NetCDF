@@ -35,6 +35,9 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %      dim_limit_str   [cell]: name of dimensions, like {'lon','lat'}
 %               
 %      dim_limit_limit [cell]: limit of dimensions, like {[-85 -55], [30 45]}
+%                        + It can be empty, indicating no limit for all dimensions.
+%                        + For any specific dimension, the limit contains more than 2 values, 
+%                          it will be treated as a list of discrete indexes to be read from the file.
 % 
 %      merge_dim_name [string]: name of the dimension in which the variables 
 %                 from different files will be concatenated. If merge_dim_name is
