@@ -119,7 +119,10 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 % 
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
-
+% v2.20  by L. Chi
+%          support read from incontinuous dimension index!
+%          a bug is fixed: error may appear if the merged dimension is not
+%          the last one in previous version
 % v2.19b by L. Chi
 %          Fix a bug where empty range for variables is not set properly
 %          for the recently introduced "v2" format.
@@ -348,7 +351,7 @@ end
 % ## prepare dimensions
 % =========================================================================
 
-% ### get start/count for all dimensions ---------------------------------- 
+% ### get start/count for all dimensions except the merged dimension ------ 
 % use the first file as the template
 
 if is_load_presaved_info == true
@@ -359,7 +362,7 @@ if is_load_presaved_info == true
     elseif strcmpi( pregen_data_format, 'v2' )
         var_dim0 = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( tmp_presaved_info, varname, dim_name, dim_limit, dim_varname );
     else
-        error;
+        error('unknown pregen_data_format!');
     end
     var_dim0 = var_dim0.var_dim;
 else
@@ -367,7 +370,20 @@ else
     var_dim0 = FUN_nc_varget_sub_genStartCount_from_file( fn, varname, dim_name, dim_limit, time_var_name, dim_varname );
 end
 
+% prepare incontinuous dimensions
+% is_read_incontiuous = false;
+% for ii = 1:length(var_dim0)
+%     if isnan(var_dim0(ii).start) && var_dim0(ii).count > 0
+%         var_dim0(ii).is_incontinuous = true;
+% 
+%         is_read_incontiuous = true;
+%     else
+%         var_dim0(ii).is_incontinuous = false;
+%     end
+% end
+
 N_dim = length( var_dim0 );
+
 
 % ### get merged variable info for all files ------------------------------
 
@@ -378,7 +394,10 @@ if ~isempty( merge_dim_name )
     
     if ~isempty( ind_merged_dim )
         % The current variable is associated to the dimension to be merged.
-        
+        if isnan(var_dim0(ind_merged_dim).start) && var_dim0(ind_merged_dim).count>0 
+            error('The incontinuous feature does not support the dimension to be merged!')
+        end
+
         % find the limit and properties of the merged dimension.
         ind_merged_dim_in_limit = find( strcmpi( dim_name, merge_dim_name ) );
         if isempty( ind_merged_dim_in_limit )
@@ -398,7 +417,7 @@ if ~isempty( merge_dim_name )
 
                 tmp_mvar_loc = presaved_info.merge_dim.value >= dim_limit_for_merged_var{1}(1) & presaved_info.merge_dim.value <= dim_limit_for_merged_var{1}(2);
                 if isempty( tmp_mvar_loc )
-                     error('No data found within the required range for the merged dimension!') 
+                    error('No data found within the required range for the merged dimension!') 
                 end
                 tmp_fileloc        = unique(presaved_info.merge_dim.files(tmp_mvar_loc));
                 presaved_info.file = presaved_info.file(tmp_fileloc);
@@ -459,7 +478,7 @@ if ~isempty( merge_dim_name )
                 idim = find( strcmpi( {var_dim0.Name}, dim_name{jj} ) );
                 
                 if isempty( idim )
-                    dim_original_values{jj} = []; % the current dimension is not associated witht the current variable.
+                    dim_original_values{jj} = []; % the current dimension is not associated with the current variable.
                 else
                     dim_original_values{jj} = var_dim0(idim).originalVal;
                 end
@@ -504,8 +523,10 @@ end
 % =========================================================================
 % ## load data
 % =========================================================================
+
+
 if length( var_dim0 ) == 1 && isempty( var_dim0.Name )
-    % Dimensionless variables ---------------------------------------------
+    % ==== Dimensionless variables ========================================
     
     size1 = [ 1, Nm ];
     data_out = nan( [size1, 1] ); % an additional dimension is added to avoid errors when size1 is 1x1.
@@ -521,21 +542,18 @@ if length( var_dim0 ) == 1 && isempty( var_dim0.Name )
     end
     
 else
-    % varialbes with dimensions -------------------------------------------
+    % ==== varialbes with dimensions ======================================
+
+    
+    % ### initialize output file ------------------------------------------
     
     size1 =  [var_dim0.count] ;
     size1(ind_merged_dim) = Nm;
     data_out = nan( [size1, 1] );    % an additional dimension is added to avoid errors when size1 is 1x1.
     
-    nc_start = [ var_dim0(:).start ];
-    nc_count = [ var_dim0(:).count ];
-    nc_strid = ones(size(nc_start));
-    
     if ind_merged_dim ~= N_dim
         warning('Please use with caution. This has not been fully tested yet!')
         data_out =  FUN_exchage_dim( data_out, ind_merged_dim, N_dim );
-        nc_start =  FUN_exchage_dim( data_out, ind_merged_dim, N_dim );
-        nc_count =  FUN_exchage_dim( data_out, ind_merged_dim, N_dim );
     end
     
     Nx = prod( size1(1:end-1) );
@@ -543,32 +561,34 @@ else
     
     % check data size.
     if numel( data_out ) == 0
-       error('No data found within the required range!') 
+        error('No data found within the required range!') 
     end
-    
-    
+
+    % loop for files
     for ii = 1:length( filepath_list )
         
         fn = filepath_list{ii};
         
-        if ~isempty( merge_dim_name )
-            if var_dim_merged(ii).count == 0
-                if is_log_compact_on == false
+        % skip files with empty data
+        if ~isempty( merge_dim_name ) &&  var_dim_merged(ii).count == 0
+            if is_log_compact_on == false
                 disp(['Skip ' fn]);
-                end
-                continue
-            else
-                disp(['Loading ' fn]);
             end
-
-            nc_start(end) = var_dim_merged(ii).start;
-            nc_count(end) = var_dim_merged(ii).count;
-
-            tem = FUN_nc_varget_enhanced_region( fn, varname, nc_start, nc_count, nc_strid );
-        else
-            disp(['Loading ' fn]);
-            tem = FUN_nc_varget_enhanced_region( fn, varname, nc_start, nc_count, nc_strid );
+            continue
         end
+
+        disp(['Loading ' fn]);
+
+        
+        % Update dimension info for the current file
+        var_dim_current = var_dim0;
+        if ~isempty( merge_dim_name )
+            var_dim_current(ind_merged_dim).start = var_dim_merged(ii).start;
+            var_dim_current(ind_merged_dim).count = var_dim_merged(ii).count;
+        end
+        
+        % Read data (support non-contiguous dimensions)
+        tem = FUN_nc_varget_from_vardiminfo( fn, varname, var_dim_current );
         
         if ind_merged_dim ~= N_dim
             tem =  FUN_exchage_dim( tem, ind_merged_dim, N_dim );
@@ -641,3 +661,6 @@ data_out = reshape( data_out, [size1, 1] );
 if ind_merged_dim ~= N_dim
     data_out =  FUN_exchage_dim( data_out, ind_merged_dim, N_dim );
 end
+
+end % end of function
+

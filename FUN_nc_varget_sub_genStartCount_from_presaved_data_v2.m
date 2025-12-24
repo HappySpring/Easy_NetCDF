@@ -157,11 +157,12 @@ for ii = 1:length( var_dim_ind )
     if ~isempty( dim_limit_ind )
         
         [start, count, tem_loc] = FUN_nc_varget_sub_genStartCount( dim_val_now, dim_limit{dim_limit_ind} );
-        
+
         var_dim(ii).start       = start;
         var_dim(ii).count       = count;
         var_dim(ii).value       = dim_val_now(tem_loc);
         var_dim(ii).value_name  = var_dim(ii).varname; % value_name is dim_varname_now if it existed, otherwise, value_name is the name of the dimension.
+        var_dim(ii).ind         = tem_loc;
         
         if isempty( var_dim(ii).value_name )
            var_dim(ii).value_name = var_dim(ii).Name;
@@ -174,6 +175,7 @@ for ii = 1:length( var_dim_ind )
         
         var_dim(ii).value       = dim_val_now;
         var_dim(ii).value_name  = var_dim(ii).Name ; %
+        var_dim(ii).ind         = [];
     end
     
 end

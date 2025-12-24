@@ -172,7 +172,9 @@ function [time0, unit_str, unit_to_day, dt] = FUN_nc_get_time0_from_str( time_st
         
     elseif strcmpi( unit_str, 'months' )
         unit_to_day = []; %
-        dt = months;
+        warning('months is not a recommended unit!')
+        %dt = months;
+        dt = nan;
         
     elseif strcmpi( unit_str, 'years' )
         unit_to_day = [];

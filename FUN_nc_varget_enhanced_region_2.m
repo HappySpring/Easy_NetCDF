@@ -115,10 +115,12 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
     nc_start = [ var_dim(:).start ];
     nc_count = [ var_dim(:).count ];
     nc_strid = ones(size(nc_start));
-    data = FUN_nc_varget_enhanced_region( filename, varname, nc_start, nc_count, nc_strid );
-    
+    %data = FUN_nc_varget_enhanced_region( filename, varname, nc_start, nc_count, nc_strid );
+    data = FUN_nc_varget_from_vardiminfo( filename, varname, var_dim );
+
 %% check dimension 
     if is_double_check
+        % This does not support incontinuous dimensions yet!
         for ii = 1:length(var_dim)
 
             if isempty( var_dim(ii).varname ) || all( isnan( var_dim(ii).value_name ) )

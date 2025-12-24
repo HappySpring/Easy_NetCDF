@@ -20,12 +20,14 @@ function filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data( pregen_in
 % OUTPUT:
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
 % -------------------------------------------------------------------------
+% V1.02 by L. Chi. Add warning message about deprecation
 % V1.01 by L. Chi. Fix a bug
 %                  The function may return error unexpectedly when both 
 %                  both "dim_name" and "dim_limit" are empty
 % V1.00 by L. Chi. This is extracted from "FUN_nc_varget_enhanced_region_2.m"
 % (L.Chi.Ocean@outlook.com)
 
+warning('This function is deprecated. Please use FUN_nc_varget_sub_genStartCount_from_presaved_data_v2 instead. The preasved filelist need to be re-created by FUN_nc_gen_presaved_netcdf_info_v2');
 
 %% ## Set default value
 
@@ -89,7 +91,8 @@ for ii = 1:length( var_dim_ind )
         var_dim(ii).count       = count;
         var_dim(ii).value       = dim_val_now(tem_loc);
         var_dim(ii).value_name  = var_dim(ii).varname; % value_name is dim_varname_now if it existed, otherwise, value_name is the name of the dimension.
-        
+        var_dim(ii).ind         = tem_loc;
+
         if isempty( var_dim(ii).value_name )
            var_dim(ii).value_name = var_dim(ii).Name;
         end
@@ -102,6 +105,8 @@ for ii = 1:length( var_dim_ind )
         
         var_dim(ii).value       = dim_val_now;
         var_dim(ii).value_name  = var_dim(ii).Name ; %
+        var_dim(ii).ind         = [];
+
     end
     
 end

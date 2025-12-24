@@ -130,12 +130,14 @@ for ii = 1:length( var_dim_id )
         end
         
         [start, count, tem_loc] = FUN_nc_varget_sub_genStartCount( dim_val_now, dim_limit{dim_ind} );
-        
+        % note: start = nan & count > 0 indicate unconstructed grid or unconstrained selection.
+
         var_dim(ii).originalVal = dim_val_now;
         var_dim(ii).start       = start;
         var_dim(ii).count       = count;
         var_dim(ii).varname     = dim_name_now;
         var_dim(ii).value       = dim_val_now(tem_loc);
+        var_dim(ii).ind         = tem_loc; % indices (within this dimension) selected by the limit
         
     else
         
@@ -159,6 +161,7 @@ for ii = 1:length( var_dim_id )
         var_dim(ii).count       = var_dim(ii).Length;
         var_dim(ii).varname     = [];
         var_dim(ii).value_name  = var_dim(ii).Name ; %
+        var_dim(ii).ind         = [];
     end
     
 end
@@ -173,6 +176,7 @@ if isempty( var_dim_id )
     var_dim.varname     = [];
     var_dim.value       = [];
     var_dim.value_name  = [];
+    var_dim(ii).ind     = [];
 end
 
 

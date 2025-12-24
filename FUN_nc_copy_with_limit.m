@@ -31,6 +31,8 @@ function FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit
 %     FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit_val  )
 % -------------------------------------------------------------------------
 %
+% v1.24 by L. Chi: Output warning information for out of range dimension.
+%                  
 % v1.23 by L. Chi: support copy variables by indexes at specific dimensions, see "dim_varname" below
 %
 % v1.22 by L. Chi: support rare data types
@@ -76,6 +78,10 @@ end
 % is_add_preset_att: add some preset attributes in the output files, like "Copy Source", "Copy Date", "Copy Range". 
 [is_add_preset_att, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_add_preset_att', true );
 
+% Skip the whole file if any empty dim found! 
+%       set is_skip_with_any_empty_dim = false will cause error message if empty
+%       dimension appears
+[is_skip_with_any_empty_dim, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_skip_with_any_empty_dim', false );
 
 % variables to be included. var_included is empty => including all
 % variables
@@ -130,6 +136,10 @@ for ii = 1:length(info0.Dimensions)
         
         [start, count, ind] = FUN_nc_varget_sub_genStartCount( var_now, dim_limit_val{ij} );
         
+        if count == 0
+            warning([' Dim: ' dim_name_now ' (min: ' num2str(min(var_now)) ' - max: ' num2str(max(var_now)) ') out of the required range: ' num2str(dim_limit_val{ij}(1) ) ' - ' num2str(dim_limit_val{ij}(2) ) ])
+        end
+
         info1.Dim(ii).Name        = dim_name_now;
         info1.Dim(ii).Length      = count;
         info1.Dim(ii).MatInd      = ii;  % Location of this variable in the Dim Matrix
@@ -149,6 +159,11 @@ for ii = 1:length(info0.Dimensions)
         info1.Dim(ii).ind         = 1:info1.Dim(ii).Length ;
         info1.Dim(ii).is_seleted  = false;
     end
+end
+
+if is_skip_with_any_empty_dim && any( [info1.Dim(:).count] ==0) 
+    warning('  dimension with zero count found, skip copying file!')
+    return
 end
 
 %% open new file and write dimensions
