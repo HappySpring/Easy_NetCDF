@@ -122,7 +122,7 @@ function data = FUN_nc_varget_from_vardiminfo( fn, varname, var_dim_info )
         data = nan([tot_size,1]);
         sub_dest = repmat({':'}, 1, ndims);
 
-        nblocks = numel(size(tot_list_start{1}));
+        nblocks = numel(tot_list_start{1});
         
         if ndims_ic == 1
             % single incontinuous dimension, avoid cellfun for performance
