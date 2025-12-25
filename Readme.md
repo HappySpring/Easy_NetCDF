@@ -6,17 +6,13 @@
 
  ### Highlighted features
 
- - Load variables from a custom region across multiple files quickly.
- - Robust OpenDAP downloader with block-by-block transfer and automatic retry.
+ - **Enhanced multi-file region loader: `FUN_nc_varget_enhanced_region_2_multifile` — read subsets across many files and concatenate along a specified dimension. It can work with `FUN_nc_gen_presaved_netcdf_info_v2` to read data according to pre-created meta, which improve the performance significantly.**
+ - **Robust OpenDAP download: `FUN_nc_OpenDAP_with_limit` — supports chunked downloads and automatic retry on interruptions.**
 
- ### New features (recent additions)
+ - Time utilities: `FUN_nc_get_time_in_matlab_format` reads time variable from NetCDF and output to MATLAB datenum by handling the attributes "units".
+ - Merge and aggregation tools: `FUN_nc_merge`, `FUN_nc_merge_save_mean` for combining netcdf files by time and computing means.
+ - Easy NetCDF writers: `FUN_nc_easywrite*` family — functions to create and write simple NetCDF files.
 
- - Enhanced multi-file region loader: `FUN_nc_varget_enhanced_region_2_multifile` — read subsets across many files and concatenate along a specified dimension.
- - Robust OpenDAP download: `FUN_nc_OpenDAP_with_limit` — supports chunked downloads and automatic retry on interruptions.
- - Easy NetCDF writers: `FUN_nc_easywrite*` family — quick helpers to create and write simple NetCDF files.
- - Time utilities: `FUN_nc_get_time_in_matlab_format` and related helpers to convert NetCDF time units to MATLAB datenum.
- - Presaved metadata/cache support: `FUN_nc_gen_presaved_netcdf_info*` — speeds up repeated reads from large file collections.
- - Merge and aggregation helpers: `FUN_nc_merge`, `FUN_nc_merge_save_mean` for combining datasets by time and computing means.
 
  ### Features
 
@@ -33,7 +29,7 @@
    - Merge files by time and compute means across merged files.
 
  - Write NetCDF files
-   - Quick helpers to create and write simple NetCDF files (`FUN_nc_easywrite_*`). For complex NetCDF writing, prefer MATLAB's NetCDF library.
+   - Create and write simple NetCDF files (`FUN_nc_easywrite_*`). For complex NetCDF writing, prefer MATLAB's NetCDF library.
 
  ### Known issues
 
@@ -46,7 +42,7 @@
  | Path                 | Notes                                                 |
  | -------------------- | ----------------------------------------------------- |
  | ./                   | Functions for the current version                     |
- | ./private            | Private helper functions used by the toolbox (invisible to other functions outside of this toolbox)                 |
+ | ./private            | Private functions used by the toolbox (invisible to other functions outside of this toolbox)                 |
  | ./Documents_and_demo | Demo files and documentation                           |
  | ./Archive            | Older code; not recommended for normal use             |
 
@@ -111,11 +107,11 @@ which will convert the time variable (`var_time`) to MATLAB unit (days since 000
 
  **`data = FUN_nc_varget( filename, varname );`**
 
-+ `offset` will not be applied
++ `off_set` will not be applied
 
 + `scale` will not be applied
 
-+ `missing values` will not be replaced with NaN.
++ `missing_values` will not be replaced with NaN.
 
 + Loaded data will keep its original type as in the NetCDF file.
 
@@ -140,9 +136,9 @@ data = FUN_nc_varget( 'Demo_SST_2001.nc', 'sst');
 
 This is the recommended command for loading one variable from one file.
 
-+ `offset` will be applied
++ `off_set` will be applied
 + `scale` will be applied
-+ `missing values` will be replaced with NaN
++ `missing_values` will be replaced with NaN
 + Data will be converted to `double`.
 
 ##### INPUT
@@ -167,9 +163,9 @@ data = FUN_nc_varget_enhanced( 'Demo_SST_2001.nc', 'sst');
  **`data = FUN_nc_varget_enhanced_region( filename, varname, start, count, stride);`**    
 
 + Read a part of the domain.
-+ `offset` will be applied
++ `off_set` will be applied
 + `scale` will be applied
-+ `missing values` will be replaced with NaN
++ `missing_values` will be replaced with NaN
 + Loaded data will be converted to `double`
 
 ##### INPUT
