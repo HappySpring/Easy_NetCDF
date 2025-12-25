@@ -19,6 +19,10 @@ function var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname,
 %           + dim_varname can also caontain arrays to set the longitude,
 %           latitude, time, etc, manually instead of reading them from the
 %           netcdf file. E.g., dim_varname = { [-82:1/4:-55], [26:1/4:45]};
+%           + if dim_varname = {'lon', [], 'lat'}, this function will try
+%               to assign a dim_varname according to the dimension name if
+%               such a variable exist, otherwise, the [] will be replaced
+%               by nan.
 %
 % -------------------------------------------------------------------------
 % OUTPUT:
@@ -99,6 +103,29 @@ for ii = 1:length( var_dim_id )
         dim_name_now    = var_dim(ii).Name ;
         dim_varname_now = dim_varname{ dim_ind };
         
+        % handle empty dim_varname_now
+        % please note that if `dim_varname_now = []`, then `isnumeric( dim_varname_now )` returns true!
+        if isempty(dim_varname_now)
+            if FUN_nc_is_exist_variable(filename,var_dim(ii).Name)
+                dim_varname_now = var_dim(ii).Name;
+            else
+                warning(['Cannot find a variable defining values for ' var_dim(ii).Name ', index based values will be adopted!' ])
+                dim_varname_now = nan;
+            end
+        end
+        
+        if ischar( dim_varname_now )
+            if FUN_nc_is_exist_variable( filename, dim_varname_now )
+                % pass
+            elseif length(dim_limit{dim_ind}) > 2
+                %
+                dim_varname_now = nan;
+            else
+                error
+            end
+        end
+
+
         % #### apply limit
         %if exist('time_var_name','var') && ~isempty( time_var_name ) && strcmp( dim_name_now, time_var_name )
         if exist('time_var_name','var') && ~isempty( time_var_name ) && strcmp( dim_name_now, time_dim_name ) 
@@ -113,7 +140,7 @@ for ii = 1:length( var_dim_id )
                 % The definition of the axis is not included in the netCDF.
                 dim_val_now = 1 : var_dim(ii).Length;
                 var_dim(ii).value_name  = var_dim(ii).Name ; % value_name is dim_varname_now if it existed, otherwise, value_name is the name of the dimension.
-                
+
             elseif ischar( dim_varname_now ) % dim_varname_now is the name of a variable associated to this dimension
                 dim_val_now = FUN_nc_varget_enhanced( filename, dim_varname_now ) ;
                 var_dim(ii).value_name  = dim_varname_now ; % value_name is dim_varname_now if it existed, otherwise, value_name is the name of the dimension.

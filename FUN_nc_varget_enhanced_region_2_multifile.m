@@ -38,18 +38,19 @@ function [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2_multifile( file
 %                        + It can be empty, indicating no limit for all dimensions.
 %                        + For any specific dimension, the limit contains more than 2 values, 
 %                          it will be treated as a list of discrete indexes to be read from the file.
+%                          see Example 8 & 9 in readme.md .
 % 
 %      merge_dim_name [string]: name of the dimension in which the variables 
 %                 from different files will be concatenated. If merge_dim_name is
 %                 empty, the variable will be concatenated after its last
 %                 dimension.
 %
-%                 + Example 1: if you want to read gridded daily
+%                 + Example 6 (in readme.md): if you want to read gridded daily
 %                   temperature given in [lon, lat, depth, time] from a set of
 %                   files, and each file contains temperature in one day,
 %                   the merge_dim_name should be 'time'. 
 %
-%                 + Example 2: if you want to read gridded daily temperature given in
+%                 + Example 7 (in readme.md): if you want to read gridded daily temperature given in
 %                   [lon, lat, depth], in which time is not given
 %                   explicitly in each file, you can leave merge_dim_name
 %                   empty.

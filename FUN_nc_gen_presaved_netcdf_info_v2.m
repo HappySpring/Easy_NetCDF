@@ -1,5 +1,5 @@
 function pregen_info = FUN_nc_gen_presaved_netcdf_info_v2( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path, varargin)
-% pregen_info = FUN_nc_gen_presaved_netcdf_info( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path )
+% pregen_info = FUN_nc_gen_presaved_netcdf_info_v2( filelist, merge_dim_name, dim_name, dim_varname, time_var_name, output_file_path )
 % This is an internal function called by FUN_nc_varget_enhanced_region_2_multifile
 % Please refer to the comments in "FUN_nc_varget_enhanced_region_2_multifile.m" for input parameters.
 %
@@ -213,7 +213,8 @@ for idim = 1:length( dimlist )
     end
     
 end
-idim = [];
+
+% idim = [];
 
 
 

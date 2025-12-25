@@ -35,7 +35,7 @@
 
  - This toolbox does not support NetCDF groups. There is no plan to add group support in the near future.
 
- -----------------------------------------------
+-----------------------------------------------
 
  ### File structure
 
@@ -54,7 +54,7 @@
  - `FUN_nc_get_time_in_matlab_format`          : Convert NetCDF time variable to MATLAB datenum
  - `FUN_nc_OpenDAP_with_limit`                 : Robust OpenDAP downloader with chunking and retry
 
- ------------------------------------------------
+------------------------------------------------
 
  ### How to add this package to the MATLAB path
 
@@ -74,9 +74,9 @@ Click "Home tab> Set Path". It will open a dialog for setting the path. Then, cl
  ```
 
  - Method 2:
-  MATLAB runs `startup.m` (if it exists in the search path) automatically during startup. Thus, adding an `addpath` call to `startup.m` also works.
+    MATLAB runs `startup.m` (if it exists in the search path) automatically during startup. Thus, adding an `addpath` call to `startup.m` also works.
 
- ----
+----
 ## 2. Read data from NetCDF file(s)
 
 Several functions in this package were written for this purpose, all of which (except `FUN_nc_varget`) can be replaced by `FUN_nc_varget_enhanced_region_2_multifile`.
@@ -124,7 +124,7 @@ which will convert the time variable (`var_time`) to MATLAB unit (days since 000
 
 + data: values read from the NetCDF file. 
 
-##### Example
+##### Example 1
 
 ```matlab
 data = FUN_nc_varget( 'Demo_SST_2001.nc', 'sst');
@@ -150,7 +150,7 @@ This is the recommended command for loading one variable from one file.
 
 + data: values read from the NetCDF file. 
 
-##### Example
+##### Example 2
 
 ```matlab
 data = FUN_nc_varget_enhanced( 'Demo_SST_2001.nc', 'sst');  
@@ -180,7 +180,7 @@ data = FUN_nc_varget_enhanced( 'Demo_SST_2001.nc', 'sst');
 
 + data: values read from the NetCDF file. 
 
-##### example
+##### example 3
 
 ```matlab
 % parameters
@@ -255,7 +255,7 @@ data = FUN_nc_varget_enhanced_region( fn, 'sst', nc_start, nc_count, nc_stride);
 + data     : data extracted from the given NetCDF file.     
   + When `time_var_name ` is not empty, the corresponding variable in `out_dim` is converted to the same format as `datenum`. However, this unit conversion will never be applied to the output variable `data`. If you want to read the time variable itself, please use `FUN_nc_get_time_in_matlab_format`.
 
-##### example 1: Read May 2001 SST between 110W-20W, 15N-70N
+##### example 4: Read May 2001 SST between 110W-20W, 15N-70N
 
 ```matlab
 fn            = 'Demo_SST_2001.nc';
@@ -274,7 +274,7 @@ shading interp
 title(datestr(out_dim.time))
 ```
 
-##### example 2: Read SST between 180W-180E, 0N-50N in the second month of 2001
+##### example 5: Read SST between 180W-180E, 0N-50N in the second month of 2001
 
 `dim_varname{2}` is set to nan to read the second record in time. 
 
@@ -321,18 +321,22 @@ axis equal
      dim_limit_str   [cell]: name of dimensions, like {'lon','lat'}. Dimensions with custom limits must be listed here. Other dimensions are optional.
     
      dim_limit_limit [cell]: limits of dimensions, like {[-85 -55], [30 45]}.
-    
+                + It can be empty, indicating no limit for all dimensions.
+                + For any specific dimension, the limit contains more than 2 values, 
+                    it will be treated as a list of discrete indexes to be read from the file.
+                    see Example 8 & 9 in readme.md .
+
      merge_dim_name [string]: name of the dimension in which the variables 
                 from different files will be concatenated. If merge_dim_name is
                 empty, the variable will be concatenated after its last
                 dimension.
     
-                + Example 1: if you want to read gridded daily
+                + Example 6: if you want to read gridded daily
                   temperature given in [lon, lat, depth, time] from a set of
                   files, and each file contains temperature in one day,
                   the merge_dim_name should be 'time'. 
     
-                + Example 2: if you want to read gridded daily temperature given in
+                + Example 7: if you want to read gridded daily temperature given in
                   [lon, lat, depth], in which time is not given
                   explicitly in each file, you can leave merge_dim_name
                   empty.
@@ -358,7 +362,7 @@ axis equal
      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
      data     : data extracted from the given NetCDF file.  
 
-##### Example 1: Read SST from Dec 2001 to May 2003
+##### Example 6: Read SST from Dec 2001 to May 2003
 
 ```matlab
 filelist       = dir('Demo_*.nc');
@@ -402,7 +406,7 @@ filelist = ['Demo_SST_2001.nc'
             'Demo_SST_2010.nc'];
 ```
 
-##### Example 2: Read SST from Dec 2001 to Nov 2003 in Northwest Atlantic
+##### Example 7: Read SST from Dec 2001 to Nov 2003 in Northwest Atlantic
 
 ```matlab
 filelist       = dir('Demo_*.nc');
@@ -415,6 +419,97 @@ dim_varname    = {'lon','lat','time'}; % This is to force the function to read v
 
 [ out_dim, data ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );
 ```
+
+##### Example 8: read data by incontinuous indexes
+
+read sst in the following custom range 
+      * the 1st, 2nd, 3rh, 9th, 10th, 16th, 19th longitude
+      * the 4th, 5th, 6th, 8th, 9th latitude
+      * between Dec 1, 2001 and Jun 30, 2002
+
+```matlab
+filelist       = dir('./Documents_and_demo/Demo_*.nc');
+varname        = 'sst';
+dim_name       = { 'lon', 'y', 'time' }; % In the demo files, the meridional dimension is named as "y".
+dim_limit      = { [1, 2, 3, 9, 10, 16, 19],  [4, 5, 6, 8, 9], [datenum(2001,12,1) datenum(2002,6,30)] };
+
+merge_dim_name = 'time'; % merge data in "time" dimension.
+time_var_name  = 'time'; % convert values in "time" to matlab units (days since 0000-01-00 00:00).
+dim_varname    = []; % {'lon','lat','time'}; % This is to force the function to read values for the meridional dimension from the variable "lat".
+
+[ out_dim, data ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );
+```
+
+output
+
+```
+out_dim = 
+
+  struct with fields:
+
+     lon: [7x1 double]
+       y: [4 5 6 8 9]
+    time: [731186 731217 731248 731276 731307 731337 731368]
+
+  Name      Size             Bytes  Class     Attributes
+
+  data      7x5x7             1960  double        
+```
+
+
+
+##### Example 9: read salinity in Northwest Atlantic from a CMIP6 experiment (unconstructed grid)
+
+```matlab
+% list files
+filelist = dir('W:\Data_climate\CMIP6\ssp245_AWI-CM-MR_mon\so_Omon_AWI-CM-1-1-MR_ssp245_r1i1p1f1_gn_*.nc');
+
+% read time for years from 2068 to 2075
+varname        = 'time';
+dim_name       = { 'time' }; % 
+dim_limit      = { [datenum(2068,1,1) datenum(2075,12,31)] };
+merge_dim_name = 'time'; % merge data in "time" dimension.
+time_var_name  = 'time'; % convert values in "time" to matlab units (days since 0000-01-00 00:00).
+dim_varname    = [];     % the variables defines each dimension in dim_name. It is assigned automatically if left empty.
+[ ~, time ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, 'time', dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );
+
+% read longitude/latitude
+[ ~, lon ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, 'lon', dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );
+[ ~, lat ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, 'lat', dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );
+
+
+% get the index for the focus longitude/latitude
+ind = find( lon >= -90 & lon <= -50 & lat >= 15 & lat <= 45);
+
+% read surface data (salinity here) within the region.
+varname        = 'so';
+dim_name       = { 'ncells', 'depth', 'time' }; 
+dim_limit      = { ind,  [1 1], [datenum(2068,1,1) datenum(2075,12,31)] }; 
+merge_dim_name = 'time'; % merge data in "time" dimension.
+time_var_name  = 'time'; % convert values in "time" to matlab units (days since 0000-01-00 00:00).
+dim_varname    = {[], nan,'time'}; % the variables defines each dimension in dim_name. It is assigned automatically if left empty.
+                                   % nan indicate that the limit ([1 1]) in dim_lim is a limit of index instead of a limit of actual depth
+                                   % [] will be handled automatically. Here, it is equal to nan.
+
+[ out_dim, so ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );
+
+% read full-depth data (salinity here) within the region.
+varname        = 'so';
+dim_name       = { 'ncells', 'time' };  % `depth` is removed since the full depth should be loaded without any spcific limits applied.
+dim_limit      = { ind,  [datenum(2068,1,1) datenum(2075,12,31)] }; 
+merge_dim_name = 'time'; % merge data in "time" dimension.
+time_var_name  = 'time'; % convert values in "time" to matlab units (days since 0000-01-00 00:00).
+dim_varname    = {[], 'time'}; % the variables defines each dimension in dim_name. It is assigned automatically if left empty.
+                                   % nan indicate that the limit ([1 1]) in dim_lim is a limit of index instead of a limit of actual depth
+                                   % [] will be handled automatically. Here, it is equal to nan.
+
+[ out_dim, so ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );
+
+```
+
+
+
+
 
 ### 2.4 Read a subset from hundreds of files quickly
 
@@ -495,7 +590,7 @@ The dimensional information can be generated by `FUN_nc_gen_presaved_netcdf_info
 
  Notice: To recognize the axis correctly, there must be one variable named the same as the axis. Assigning a variable to a specific axis is not yet supported. 
 
-##### Example 1: download a subset of HYCOM data from its OpenDAP server
+##### Example 10: download a subset of HYCOM data from its OpenDAP server
 
 ```matlab
 % HYCOM dataset at an OpenDAP server
@@ -536,7 +631,7 @@ Max_Count_per_group = 5;
  FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_var, dim_limit_val, var_download, var_divided, divided_dim_str, Max_Count_per_group  )
 ```
 
-##### Example 2: A new template
+##### Example 11: A new template
 
 ```matlab
 % HYCOM dataset at an OpenDAP server
@@ -600,7 +695,7 @@ N/A
 + Variables without the dimension `merge_dim_name` will be copied from the first file given in the variable filelist
 + The time in the merged file may not be correct if the time units vary between files.
 
-#### Example
+#### Example 12
 
 ```matlab
 % input_dir: path for the folder containing the files
@@ -682,6 +777,7 @@ FUN_nc_easywrite_enhanced( filename, dim_name, dim_length, varname, dimNum_of_va
 
      N/A
 
+##### Example 13
 ```matlab
 % ---- generate random data ----
 lon  = [-75:-55] ;

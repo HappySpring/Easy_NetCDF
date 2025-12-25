@@ -6,6 +6,7 @@
 function data = FUN_nc_varget_from_vardiminfo( fn, varname, var_dim_info )
 % data = FUN_nc_varget_from_vardiminfo( fn, varname, var_dim_info )
 % read data from the var_dim_info prepared by other functions in this toolbox.
+% v1.10 by L. Chi: add progress display when reading incontinuous data blocks.
 % V1.00 by L. Chi
 
 % Check for non-contiguous dimensions (start is nan)
@@ -140,6 +141,14 @@ function data = FUN_nc_varget_from_vardiminfo( fn, varname, var_dim_info )
                     sub_dest{ind_dim_ic(jj)} = ind_dest_0(jj):ind_dest_1(jj);
                 end
 
+                if ii == 1
+                    fun_disp_percent_update(ii/nblocks*100, false)
+                elseif mod(ii,5) == 0 || ii < nblocks
+                    fun_disp_percent_update(ii/nblocks*100, true)
+                elseif ii == nblocks
+                    fun_disp_percent_update(100, true)
+                    fprintf('\n')
+                end
                 data(sub_dest{:}) = netcdf.getVar(ncid, varid, start, count, stride );
             end
 
@@ -157,6 +166,15 @@ function data = FUN_nc_varget_from_vardiminfo( fn, varname, var_dim_info )
 
                 for jj = 1:ndims_ic
                     sub_dest{ind_dim_ic(jj)} = ind_dest_0(jj):ind_dest_1(jj);
+                end
+
+                if ii == 1
+                    fun_disp_percent_update(ii/nblocks*100, false)
+                elseif mod(ii,5) == 0 || ii < nblocks
+                    fun_disp_percent_update(ii/nblocks*100, true)
+                elseif ii == nblocks
+                    fun_disp_percent_update(100, true)
+                    fprintf('\n')
                 end
 
                 data(sub_dest{:}) = netcdf.getVar(ncid, varid, start, count, stride );
