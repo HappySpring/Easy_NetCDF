@@ -6,7 +6,9 @@ function field_ind = FUN_struct_find_field_ind( data_in, name_field_str, name_re
 field_ind = nan;
 for ii = 1:length( data_in )
    
-   if isequal( data_in(ii).(name_field_str), name_required)
+   
+    
+    if isequal( data_in(ii).(name_field_str), name_required)
        if isnan(field_ind)
             field_ind = ii;
        else
