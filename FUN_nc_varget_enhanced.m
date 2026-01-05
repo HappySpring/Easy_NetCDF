@@ -12,19 +12,20 @@ function data = FUN_nc_varget_enhanced(filename,varname,varargin)
 %       `speical_points_list` will be read.
 %       format: M x N, where M should be the number of specific points,
 %       and N should be the same as the dimension of variable which will be
-%       loaded from the nc file. 
-%       each line of special_points_list define a specific points.        
-%       The whole variable will be loaded if varname doesn't exist. 
+%       loaded from the nc file.
+%       each line of special_points_list define a specific points.
+%       The whole variable will be loaded if varname doesn't exist.
 % -------------------------------------------------------------------------
-% OUTPUT: 
+% OUTPUT:
 % data: data from the nc files
 % ----------------------------------------------------------------------- %
 % Example
 % data  = FUN_nc_varget_enhanced( 'TEST.nc', 'tempearture_3D');
 % data2 = FUN_nc_varget_enhanced( 'TEST.nc', 'tempearture_3D', [ 20, 16, 30]);
-%    In the second case, data2 = data(20,16,30); 
+%    In the second case, data2 = data(20,16,30);
 % ----------------------------------------------------------------------- %
 
+% v1.51 by L. Chi, 2026-01-06: improve performance by removing loops for attributes
 % V1.5b by L. Chi, 2024-05-21: fix a bug in reading 'char' without explicit dimension info
 % V1.5  by L. Chi, 2021-08-10: filename can be a 1x1 struct (e.g., results from dir('a.nc') )
 % V1.4  by L. Chi, 2019-06-23: ".'" is used instead of "'"
@@ -39,11 +40,11 @@ function data = FUN_nc_varget_enhanced(filename,varname,varargin)
 % V1.10 by L. Chi, 2015-08-04. (L.Chi.Ocean@outlook.com)
 
 if nargin == 3
-   is_read_special_points_only = 1; 
-   special_points_list = varargin{1};
+    is_read_special_points_only = 1;
+    special_points_list = varargin{1};
 else
-   is_read_special_points_only = 0; 
-   special_points_list= [];
+    is_read_special_points_only = 0;
+    special_points_list= [];
 end
 
 % read path from strucutre (if applicable)
@@ -54,7 +55,7 @@ if isstruct( filename )
         filename = filename.name;
     else
         error('Unknown input filename format')
-    end    
+    end
 end
 
 ncid = netcdf.open(filename,'NOWRITE');
@@ -63,89 +64,92 @@ varid = netcdf.inqVarID(ncid,varname);
 if is_read_special_points_only == 0
     data = netcdf.getVar(ncid,varid);
 elseif is_read_special_points_only == 1
-    
+
     data = nan( size(special_points_list,1), 1 );
     for isp = 1:size(special_points_list,1)
-       data(isp) = netcdf.getVar(ncid,varid, [special_points_list(isp, :)-1], ones(1,size(special_points_list,2) )   );
+        data(isp) = netcdf.getVar(ncid,varid, [special_points_list(isp, :)-1], ones(1,size(special_points_list,2) )   );
     end
     clear isp
-    
+
 end
 % get the format of data ( single or double )
 data_format = whos('data');
 data_format = data_format.class;
 
 %% deal with Nans
- var_info = ncinfo(filename,varname);
- 
- if strcmp( var_info.Datatype(1:4), 'char')
-     % For characters -----------------------------------------------------
-         % No further correction is necessary
-         
-         
-     % For 1-D characters, it will be reshaped into 1 line automatically
-     if isfield(var_info.Dimensions,'Length') && sum( [var_info.Dimensions.Length] > 1.1 ) == 1
-         data = data(:).';
-     end
-     
-     % --------------------------------------------------------------------    
- else
-     % For numbers --------------------------------------------------------
-     Nan_loc = false( size(data) ) ; 
+var_info = ncinfo(filename,varname);
 
-     % If the data is single & FillValue is double, then the FillValue must be
-     % converted into signle format to make sure nan can be detected correctly.
-     % 
-     scale_factor = 1;
+if strcmp( var_info.Datatype(1:4), 'char')
+    % For characters -----------------------------------------------------
+    % No further correction is necessary
 
-     for ii = 1:length(var_info.Attributes)
-        if strcmp( var_info.Attributes(ii).Name, 'FillValue')
-            nan_val = netcdf.getAtt(ncid,varid,'FillValue');
-            eval( ['nan_val = ' data_format '(nan_val);'] ); 
-            Nan_loc = ( Nan_loc | data == nan_val );
-            clear nan_val
-        elseif strcmp( var_info.Attributes(ii).Name, '_FillValue')
-            nan_val = netcdf.getAtt(ncid,varid,'_FillValue');
-            eval( ['nan_val = ' data_format '(nan_val);'] ); 
-            Nan_loc = ( Nan_loc | data == nan_val );
-            clear nan_val
-        elseif strcmp( var_info.Attributes(ii).Name, 'missing_value')
-            nan_val = netcdf.getAtt(ncid,varid,'missing_value');
-            eval( ['nan_val = ' data_format '(nan_val);'] )
-            Nan_loc = ( Nan_loc | data == nan_val );
-            clear nan_val
-        elseif strcmp( var_info.Attributes(ii).Name, 'scale_factor')
-            scale_factor = netcdf.getAtt(ncid,varid,'scale_factor');
-        end
-     end
-        clear ii
 
-        data = double(data);
+    % For 1-D characters, it will be reshaped into 1 line automatically
+    if isfield(var_info.Dimensions,'Length') && sum( [var_info.Dimensions.Length] > 1.1 ) == 1
+        data = data(:).';
+    end
 
-        if sum( Nan_loc ) == 0
-            % No nan mask will be applied
-        else
-            data( Nan_loc ) = nan;
-        end
+    % --------------------------------------------------------------------
+else
+    % For numbers --------------------------------------------------------
+    % Nan_loc = false( size(data) ) ;
 
-        data = data .* double( scale_factor );
+    % If the data is single & FillValue is double, then the FillValue must be
+    % converted into signle format to make sure nan can be detected correctly.
+    %
+    scale_factor = 1;
+
+    % Check for Attributes directly (Optimized)
+    att_names = {var_info.Attributes.Name};
+
+    Nan_loc = 0; %use `sum(Nan_loc) = 0` as default value
+    if any(strcmp(att_names, 'FillValue'))
+        nan_val = netcdf.getAtt(ncid,varid,'FillValue');
+        %eval( ['nan_val = ' data_format '(nan_val);'] );
+        nan_val = cast( nan_val, data_format );
+        Nan_loc = data == nan_val ;
+    elseif any(strcmp(att_names, '_FillValue'))
+        nan_val = netcdf.getAtt(ncid,varid,'_FillValue');
+        %eval( ['nan_val = ' data_format '(nan_val);'] );
+        nan_val = cast( nan_val, data_format );
+        Nan_loc = data == nan_val ;
+    elseif any(strcmp(att_names, 'missing_value'))
+        nan_val = netcdf.getAtt(ncid,varid,'missing_value');
+        %eval( ['nan_val = ' data_format '(nan_val);'] );
+        nan_val = cast( nan_val, data_format );
+        Nan_loc = data == nan_val ;
+    end
+
+    if any(strcmp(att_names, 'scale_factor'))
+        scale_factor = netcdf.getAtt(ncid,varid,'scale_factor');
+    end
+
+    data = double(data);
+
+    if sum( Nan_loc ) == 0
+        % No nan mask will be applied
+    else
+        data( Nan_loc ) = nan;
+    end
+
+    data = data .* double( scale_factor );
 
     %% Add offset
-     offset = 0 ;
+    offset = 0 ;
 
-     for ii = 1:length(var_info.Attributes)
+    for ii = 1:length(var_info.Attributes)
         if strcmp( var_info.Attributes(ii).Name, 'add_offset')
             offset = netcdf.getAtt(ncid,varid,'add_offset');
         end
-     end
-        clear ii
+    end
+    clear ii
 
     data = data + double( offset ) ;
 
     %% convert to double
     data = double(data);
 
- end
+end
 %% close netcdf
 netcdf.close(ncid)
 
