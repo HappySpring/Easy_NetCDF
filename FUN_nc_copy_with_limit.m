@@ -31,6 +31,8 @@ function FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit
 %     FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit_val  )
 % -------------------------------------------------------------------------
 %
+% v1.25 by L. Chi: use onCleanup to make sure the netcdf files will be closed 
+% %                even if an error occurs
 % v1.24 by L. Chi: Output warning information for out of range dimension.
 %                  
 % v1.23 by L. Chi: support copy variables by indexes at specific dimensions, see "dim_varname" below
@@ -98,6 +100,7 @@ end
 
 info0 = ncinfo(filename0);
 ncid0 = netcdf.open( filename0, 'NOWRITE' );
+cleanup_ncid0 = onCleanup(@() netcdf.close(ncid0));
 
 %% prepare dimensions
 
@@ -168,6 +171,7 @@ end
 
 %% open new file and write dimensions
 ncid1 = netcdf.create(filename1,'NETCDF4');
+cleanup_ncid1 = onCleanup(@() netcdf.close(ncid1));
 
 for ii = 1:length( info1.Dim )
     dimID1(ii) = netcdf.defDim(ncid1, info1.Dim(ii).Name , info1.Dim(ii).Length );
@@ -301,8 +305,9 @@ for iv = 1:length(info0.Variables)
     clear VarDim_now VarDimIND_now varID1 varID0 var_value
 end
 
-netcdf.close(ncid0);
-netcdf.close(ncid1);
+% this is unnecessary since the files will be cloesd by onCleanup
+% netcdf.close(ncid0);
+% netcdf.close(ncid1);
 
 
 %% test =========================================================
