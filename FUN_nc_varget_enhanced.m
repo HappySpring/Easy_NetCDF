@@ -25,6 +25,7 @@ function data = FUN_nc_varget_enhanced(filename,varname,varargin)
 %    In the second case, data2 = data(20,16,30);
 % ----------------------------------------------------------------------- %
 
+% v1.52 by L. Chi, 2026-01-11: fix a bug in handling data wihtout attributes
 % v1.51 by L. Chi, 2026-01-06: improve performance by removing loops for attributes
 % V1.5b by L. Chi, 2024-05-21: fix a bug in reading 'char' without explicit dimension info
 % V1.5  by L. Chi, 2021-08-10: filename can be a 1x1 struct (e.g., results from dir('a.nc') )
@@ -94,57 +95,60 @@ else
     % For numbers --------------------------------------------------------
     % Nan_loc = false( size(data) ) ;
 
-    % If the data is single & FillValue is double, then the FillValue must be
-    % converted into signle format to make sure nan can be detected correctly.
-    %
-    scale_factor = 1;
-
     % Check for Attributes directly (Optimized)
-    att_names = {var_info.Attributes.Name};
 
-    Nan_loc = 0; %use `sum(Nan_loc) = 0` as default value
-    if any(strcmp(att_names, 'FillValue'))
-        nan_val = netcdf.getAtt(ncid,varid,'FillValue');
-        %eval( ['nan_val = ' data_format '(nan_val);'] );
-        nan_val = cast( nan_val, data_format );
-        Nan_loc = data == nan_val ;
-    elseif any(strcmp(att_names, '_FillValue'))
-        nan_val = netcdf.getAtt(ncid,varid,'_FillValue');
-        %eval( ['nan_val = ' data_format '(nan_val);'] );
-        nan_val = cast( nan_val, data_format );
-        Nan_loc = data == nan_val ;
-    elseif any(strcmp(att_names, 'missing_value'))
-        nan_val = netcdf.getAtt(ncid,varid,'missing_value');
-        %eval( ['nan_val = ' data_format '(nan_val);'] );
-        nan_val = cast( nan_val, data_format );
-        Nan_loc = data == nan_val ;
-    end
+    if ~isempty( var_info.Attributes )
+        att_names = {var_info.Attributes.Name};
 
-    if any(strcmp(att_names, 'scale_factor'))
-        scale_factor = netcdf.getAtt(ncid,varid,'scale_factor');
-    end
+        % If the data is single & FillValue is double, then the FillValue must be
+        % converted into signle format to make sure nan can be detected correctly.
 
-    data = double(data);
-
-    if sum( Nan_loc ) == 0
-        % No nan mask will be applied
-    else
-        data( Nan_loc ) = nan;
-    end
-
-    data = data .* double( scale_factor );
-
-    %% Add offset
-    offset = 0 ;
-
-    for ii = 1:length(var_info.Attributes)
-        if strcmp( var_info.Attributes(ii).Name, 'add_offset')
-            offset = netcdf.getAtt(ncid,varid,'add_offset');
+        Nan_loc = 0; %use `sum(Nan_loc) = 0` as default value
+        if any(strcmp(att_names, 'FillValue'))
+            nan_val = netcdf.getAtt(ncid,varid,'FillValue');
+            %eval( ['nan_val = ' data_format '(nan_val);'] );
+            nan_val = cast( nan_val, data_format );
+            Nan_loc = data == nan_val ;
+        elseif any(strcmp(att_names, '_FillValue'))
+            nan_val = netcdf.getAtt(ncid,varid,'_FillValue');
+            %eval( ['nan_val = ' data_format '(nan_val);'] );
+            nan_val = cast( nan_val, data_format );
+            Nan_loc = data == nan_val ;
+        elseif any(strcmp(att_names, 'missing_value'))
+            nan_val = netcdf.getAtt(ncid,varid,'missing_value');
+            %eval( ['nan_val = ' data_format '(nan_val);'] );
+            nan_val = cast( nan_val, data_format );
+            Nan_loc = data == nan_val ;
+        elseif any(strcmp(att_names, 'mask_value'))
+            nan_val = netcdf.getAtt(ncid,varid,'mask_value');
+            %eval( ['nan_val = ' data_format '(nan_val);'] );
+            nan_val = cast( nan_val, data_format );
+            Nan_loc = data == nan_val ;
         end
-    end
-    clear ii
 
-    data = data + double( offset ) ;
+        data = double(data);
+
+        if sum( Nan_loc ) == 0
+            % No nan mask will be applied
+        else
+            data( Nan_loc ) = nan;
+        end
+
+        if any(strcmp(att_names, 'scale_factor'))
+            scale_factor = netcdf.getAtt(ncid,varid,'scale_factor');
+            data = data .* double( scale_factor );
+        end
+
+        %% Add offset
+        
+        if any(strcmp(att_names, 'add_offset'))
+             offset = netcdf.getAtt(ncid,varid,'add_offset');
+             data = data + double( offset ) ;
+        end
+        
+    else
+        data = double(data);
+    end
 
     %% convert to double
     data = double(data);

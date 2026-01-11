@@ -243,6 +243,7 @@ end
 % ncid0 = netcdf.open( filename0, 'NOWRITE' );
     f_nc_open_nw = @(x_filename)netcdf.open( x_filename, 'NOWRITE' );
     ncid0 = FUN_codetool_retry( f_nc_open_nw, filename0, N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
+    cleanup_ncid0 = onCleanup(@() netcdf.close(ncid0));
 
 %% prepare dimensions
 
@@ -309,6 +310,7 @@ end
 
 %% open new file and write dimensions
 ncid1 = netcdf.create(filename1,'NETCDF4');
+cleanup_ncid1 = onCleanup(@() netcdf.close(ncid1));
 
 for ii = 1:length( info1.Dim )
     dimID1(ii) = netcdf.defDim(ncid1, info1.Dim(ii).Name , info1.Dim(ii).count );
@@ -574,8 +576,9 @@ for iv = 1:length(info0.Variables)
     clear VarDim_now VarDimIND_now varID1 varID0 var_value
 end
 
-netcdf.close(ncid0);
-netcdf.close(ncid1);
+% netcdf.close is replaced by     cleanup_ncid0 = onCleanup(@() netcdf.close(ncid0))
+% netcdf.close(ncid0);
+% netcdf.close(ncid1);
 
 % END =====================================================================
 % =========================================================================

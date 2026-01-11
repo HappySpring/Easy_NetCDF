@@ -17,6 +17,8 @@ function data = FUN_nc_varget_enhanced_region(filename, varname, start, counts, 
 % Example
 % data2 = FUN_nc_varget_enhanced( 'TEST.nc', 'tempearture_3D', [ 20, 16, 30],[10, 15, 20], [1, 1, 1]);
 
+% v1.25 by L. Chi, 2026-01-11: improve performance in handling scale, offset and missing values
+%                              (following v1.52 of FUN_nc_varget_enhanced)
 % V1.24 by L. Chi, 2021-08-10: filename can be a 1x1 struct (e.g., results from dir('a.nc') )
 % V1.23 by L. Chi, 2018-01-21: Add mask_value
 % V1.22 by L. Chi, 2016-07-30: The function can be called by 2
@@ -75,61 +77,62 @@ end
 data_format = whos('data');
 data_format = data_format.class;
 
-%% deal with Nans
- var_info = ncinfo(filename,varname);
- Nan_loc = false( size(data) ) ; 
- 
- % If the data is single & FillValue is double, then the FillValue must be
- % converted into signle format to make sure nan can be detected correctly.
- % 
- scale_factor = 1;
- 
- for ii = 1:length(var_info.Attributes)
-    if strcmp( var_info.Attributes(ii).Name, 'FillValue')
+%% Handle nans
+var_info = ncinfo(filename,varname);
+
+if ~isempty( var_info.Attributes )
+    att_names = {var_info.Attributes.Name};
+
+    % If the data is single & FillValue is double, then the FillValue must be
+    % converted into signle format to make sure nan can be detected correctly.
+
+    Nan_loc = 0; %use `sum(Nan_loc) = 0` as default value
+    if any(strcmp(att_names, 'FillValue'))
         nan_val = netcdf.getAtt(ncid,varid,'FillValue');
-        eval( ['nan_val = ' data_format '(nan_val);'] ); 
-        Nan_loc = ( Nan_loc | data == nan_val );
-        clear nan_val
-    elseif strcmp( var_info.Attributes(ii).Name, '_FillValue')
+        %eval( ['nan_val = ' data_format '(nan_val);'] );
+        nan_val = cast( nan_val, data_format );
+        Nan_loc = data == nan_val ;
+    elseif any(strcmp(att_names, '_FillValue'))
         nan_val = netcdf.getAtt(ncid,varid,'_FillValue');
-        eval( ['nan_val = ' data_format '(nan_val);'] ); 
-        Nan_loc = ( Nan_loc | data == nan_val );
-        clear nan_val
-    elseif strcmp( var_info.Attributes(ii).Name, 'missing_value')
+        %eval( ['nan_val = ' data_format '(nan_val);'] );
+        nan_val = cast( nan_val, data_format );
+        Nan_loc = data == nan_val ;
+    elseif any(strcmp(att_names, 'missing_value'))
         nan_val = netcdf.getAtt(ncid,varid,'missing_value');
-        eval( ['nan_val = ' data_format '(nan_val);'] )
-        Nan_loc = ( Nan_loc | data == nan_val );
-        clear nan_val
-    elseif strcmp( var_info.Attributes(ii).Name, 'mask_value')
+        %eval( ['nan_val = ' data_format '(nan_val);'] );
+        nan_val = cast( nan_val, data_format );
+        Nan_loc = data == nan_val ;
+    elseif any(strcmp(att_names, 'mask_value'))
         nan_val = netcdf.getAtt(ncid,varid,'mask_value');
-        eval( ['nan_val = ' data_format '(nan_val);'] )
-        Nan_loc = ( Nan_loc | data == nan_val );
-        clear nan_val
-    elseif strcmp( var_info.Attributes(ii).Name, 'scale_factor')
+        %eval( ['nan_val = ' data_format '(nan_val);'] );
+        nan_val = cast( nan_val, data_format );
+        Nan_loc = data == nan_val ;
+    end
+
+    data = double(data);
+
+    if sum( Nan_loc ) == 0
+        % No nan mask will be applied
+    else
+        data( Nan_loc ) = nan;
+    end
+
+    if any(strcmp(att_names, 'scale_factor'))
         scale_factor = netcdf.getAtt(ncid,varid,'scale_factor');
+        data = data .* double( scale_factor );
     end
- end
-    clear ii
 
-%%
-data = double(data);
-data( Nan_loc ) = nan; 
+    %% Add offset
 
-data = data .* double( scale_factor );
-
-
-%% Add offset
- offset = 0 ;
-
- for ii = 1:length(var_info.Attributes)
-    if strcmp( var_info.Attributes(ii).Name, 'add_offset')
+    if any(strcmp(att_names, 'add_offset'))
         offset = netcdf.getAtt(ncid,varid,'add_offset');
+        data = data + double( offset ) ;
     end
- end
-    clear ii
-    
-data = data + double( offset ) ;
-    
+
+else
+    data = double(data);
+end
+
 %% return
 netcdf.close(ncid)
 
