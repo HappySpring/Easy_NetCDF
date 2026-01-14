@@ -595,7 +595,6 @@ for iv = iv_list
             
         elseif ~isempty(divided_dim_str) && ( any( strcmp(info0.Variables(iv).Name, var_divided )) || isempty(var_divided) )
             is_load_all_at_once = 0; % This variable will be loaded piece by piece
-             
         else
             error('E10: unexpected condition!')
         end
@@ -688,7 +687,7 @@ for iv = iv_list
             
             % disp
             disp([ datestr(now) '      ' VarDim_now(divided_dim).Name ': Block ' num2str(ig) ' of ' num2str(tem_N_Dgroup), ...
-                                                                      ', Index ' num2str(tem_start(divided_dim)) ' - ' num2str(tem_start(divided_dim)+tem_count(divided_dim)-1) ' of ' num2str(start(divided_dim)) ' - ' num2str(start(divided_dim)+count(divided_dim)-1) ])
+                                                                    ', Index ' num2str(tem_start(divided_dim)) ' - ' num2str(tem_start(divided_dim)+tem_count(divided_dim)-1) ' of ' num2str(start(divided_dim)) ' - ' num2str(start(divided_dim)+count(divided_dim)-1) ])
             
             netcdf.putAtt( ncid1, ncvid_global, 'opendap_resume_info_ig',  ig);
             netcdf.sync( ncid1 )
@@ -702,14 +701,14 @@ for iv = iv_list
                 catch err_log
                     fprintf('%s: %s\n',err_log.identifier, err_log.message);
                     count_err = count_err + 1;
-                    pause(30) %retry after 30 seconds
+                    pause(pause_seconds) %retry after certain seconds (30s by default)
                     disp(['Err, retry count: ' num2str( count_err )] );
 
                     if count_err == N_max_retry
                         if is_skip_blocks_with_errors
                             warning('prog:input', '%s: %s\n',err_log.identifier, err_log.message)
                             disp('Unexpected error. Retry exceeds max limit.. The error may occur in the server side. Those values will be skipped')
-                            tem2 = nan( tem_count );
+                            tem2 = nan( [tem_count, 1 ] ); % additional 1 to keep it compatible with 1-D matrix
                         else 
                             error('prog:input','%s: %s\n',err_log.identifier, err_log.message)
                         end
