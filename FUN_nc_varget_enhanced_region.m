@@ -17,6 +17,7 @@ function data = FUN_nc_varget_enhanced_region(filename, varname, start, counts, 
 % Example
 % data2 = FUN_nc_varget_enhanced( 'TEST.nc', 'tempearture_3D', [ 20, 16, 30],[10, 15, 20], [1, 1, 1]);
 
+% v1.26 by L. Chi, 2026-01-11: support auto cleanup of ncid
 % v1.25 by L. Chi, 2026-01-11: improve performance in handling scale, offset and missing values
 %                              (following v1.52 of FUN_nc_varget_enhanced)
 % V1.24 by L. Chi, 2021-08-10: filename can be a 1x1 struct (e.g., results from dir('a.nc') )
@@ -46,6 +47,8 @@ if isstruct( filename )
 end
 
 ncid = netcdf.open(filename,'NOWRITE');
+cleanup_ncid  = onCleanup(@() netcdf.close(ncid) );
+
 varid = netcdf.inqVarID(ncid,varname);
 
 count_inf_ind = find( isinf( counts ) );
@@ -134,5 +137,6 @@ else
 end
 
 %% return
-netcdf.close(ncid)
+% netcdf.close(ncid)
+clear cleanup_ncid
 
