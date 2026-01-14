@@ -28,6 +28,7 @@ function FUN_nc_easywrite_add_var( filename, var_dim_str, var_kind, var_name, da
 % OUTPUT:
 %   N/A
 % -------------------------------------------------------------------------
+% V1.21 by L. Chi: add support for auto cleanup of netcdf file handles
 % V1.20 by L. Chi: add support for specifying chunksize manually
 % V1.10 by L. Chi: Call "FUN_nc_defVar_datatypeconvert" before defining
 %                   file format (If/A);
@@ -52,7 +53,6 @@ function FUN_nc_easywrite_add_var( filename, var_dim_str, var_kind, var_name, da
 if ~isempty( varargin )
     error('Unkown parameters found!')
 end
-
 
 if exist(filename,'file')
 % ok
@@ -89,6 +89,7 @@ end
 % 'NC_64BIT_OFFSET'      Allow easier creation of files and variables which are larger than two gigabytes.
 
 ncid = netcdf.open(filename,'NC_WRITE');
+cleanup_ncid = onCleanup(@() netcdf.close(ncid) ); % make sure the file will be closed
 
 netcdf.reDef( ncid );
 
@@ -167,7 +168,7 @@ netcdf.putVar(ncid,varid,data)
 
 
 %% 6 close file
-netcdf.close(ncid);
-
+%netcdf.close(ncid);
+clear cleanup_ncid
 
 return

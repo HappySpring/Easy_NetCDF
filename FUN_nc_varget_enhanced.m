@@ -60,6 +60,7 @@ if isstruct( filename )
 end
 
 ncid = netcdf.open(filename,'NOWRITE');
+cleanup_ncid = onCleanup(@() netcdf.close(ncid) ); % make sure the file will be closed
 
 varid = netcdf.inqVarID(ncid,varname);
 if is_read_special_points_only == 0
@@ -155,5 +156,7 @@ else
 
 end
 %% close netcdf
-netcdf.close(ncid)
+% netcdf.close(ncid)
+clear cleanup_ncid
 
+return

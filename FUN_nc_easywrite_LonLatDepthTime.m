@@ -11,13 +11,13 @@ if exist(filename,'file')
 end
 %% 1 Create netcdf
 % cid = netcdf.create(filename, mode)
-% mode£º
-% 'NC_NOCLOBBER'£º                Prevent overwriting of existing file with the same name.
-% 'NC_SHARE'£º                        Allow synchronous file updates.
-% 'NC_64BIT_OFFSET'£º        Allow easier creation of files and variables which are larger than two gigabytes.
+% modeï¿½ï¿½
+% 'NC_NOCLOBBER'ï¿½ï¿½                Prevent overwriting of existing file with the same name.
+% 'NC_SHARE'ï¿½ï¿½                        Allow synchronous file updates.
+% 'NC_64BIT_OFFSET'ï¿½ï¿½        Allow easier creation of files and variables which are larger than two gigabytes.
 ndims = length(size(data));
 ncid = netcdf.create(filename,'NETCDF4');
-
+cleanup_ncid = onCleanup(@() netcdf.close(ncid) ); % make sure the file will be closed
 %% 2 Define dimensions
 % dimid = netcdf.defDim(ncid,dimname,dimlen)
 
@@ -76,7 +76,7 @@ netcdf.putVar(ncid,varidtime,time)
 
 
 %% 6 close the netcdf filie
-netcdf.close(ncid);
-
+%netcdf.close(ncid);
+clear cleanup_ncid
 
 return

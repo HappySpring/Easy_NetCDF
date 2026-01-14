@@ -12,6 +12,7 @@ function FUN_nc_easywrite_add_att( filename, var_name, att_name, att_value )
 % OUTPUT
 %   N/A
 % -------------------------------------------------------------------------
+% v1.11 by L. Chi, auto cleanup of netcdf file handles
 % V1.10 By L. Chi support global att
 % V1.00 By L. Chi (L.Chi.Ocean@outlook.com).
 
@@ -29,6 +30,7 @@ end
 % 'NC_64BIT_OFFSET'      Allow easier creation of files and variables which are larger than two gigabytes.
 
 ncid = netcdf.open(filename,'WRITE');
+cleanup_ncid = onCleanup(@() netcdf.close(ncid) ); % make sure the file will be closed
 
 netcdf.reDef( ncid );
 
@@ -45,7 +47,7 @@ netcdf.reDef( ncid );
 
 %% 4 close att
 netcdf.endDef(ncid);
-netcdf.close(ncid);
-
+%netcdf.close(ncid);
+clear cleanup_ncid
 
 return

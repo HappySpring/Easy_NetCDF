@@ -7,6 +7,7 @@ function FUN_nc_easywrite_write_var( filename, var_name, data, varargin )
 %     **This does not consider off_set and scale_factor**
 %
 
+% V1.03 by L. Chi: add support for auto cleanup of netcdf file handles
 % V1.02 by L. Chi: clean useless codes
 % V1.01 by L. Chi: fix a bug: an error occurred when varargin is not empty.
 % V1.00 by L. Chi
@@ -33,6 +34,7 @@ end
 
 % open file
 ncid = netcdf.open(filename,'NC_WRITE');
+cleanup_ncid  = onCleanup(@() netcdf.close(ncid) ); % make sure the file will be closed
 
 % get variable ID
 varid = netcdf.inqVarID( ncid, var_name );
@@ -50,7 +52,8 @@ end
 
 
 %% ## 3. close the file ====================================================
-netcdf.close(ncid);
+%netcdf.close(ncid);
+clear cleanup_ncid
 
 
 return

@@ -28,6 +28,7 @@ function FUN_nc_easywrite(filename,varname,data,varargin)
 %    FUN_NC_easywrite('temp.nc','T',Temp,{'x','y','z','t'}); or
 %    FUN_NC_easywrite('temp.nc','T',Temp,{'x','y','z','t'},'This is an example'); 
 %
+% 2026-01-14 v1.01 By L. Chi: add support for auto cleanup of netcdf file handles
 % 2013-12-19 V1.00 By L. Chi (L.Chi.Ocean@outlook.com)
 
 if exist(filename,'file')
@@ -35,13 +36,13 @@ if exist(filename,'file')
 end
 %% 1 Create Netcdf 
 % cid = netcdf.create(filename, mode)
-% mode£º
+% modeï¿½ï¿½
 % 'NC_NOCLOBBER'           Prevent overwriting of existing file with the same name.
 % 'NC_SHARE'               Allow synchronous file updates.
 % 'NC_64BIT_OFFSET'        Allow easier creation of files and variables which are larger than two gigabytes.
 ndims = length(size(data));
 ncid = netcdf.create(filename,'NETCDF4');
-
+cleanup_ncid = onCleanup(@() netcdf.close(ncid) ); % make sure the file will be closed
 %% 2 Define Dimensions
 % dimid = netcdf.defDim(ncid,dimname,dimlen)
 
@@ -89,7 +90,7 @@ netcdf.putVar(ncid,varid,data)
 
 
 %% 6 close file
-netcdf.close(ncid);
-
+% netcdf.close(ncid);
+clear cleanup_ncid
 
 return

@@ -27,6 +27,7 @@ function FUN_nc_copy_with_limit_SP_select_by_layer( filename0, filename1, dim_li
 %     FUN_nc_copy_with_limit( filename0, filename1, dim_limit_var, dim_limit_val  )
 % -------------------------------------------------------------------------
 
+% By L. Chi, v1.02 2026-01-14: add support for auto cleanup of netcdf file handles
 % By L. Chi, v1.01 2025-01-15: support rare data types
 % By L. Chi, V1.00 2016-10-24 (L.Chi.Ocean@outlook.com)
 
@@ -42,7 +43,7 @@ end
 
 info0 = ncinfo(filename0);
 ncid0 = netcdf.open( filename0, 'NOWRITE' );
-
+cleanup_ncid0 = onCleanup(@() netcdf.close(ncid0) ); % make sure the file will be closed
 %% prepare dimensions
 
 for ii = 1:length(info0.Dimensions)
@@ -89,6 +90,7 @@ end
     
 %% open new file and write dimensions
 ncid1 = netcdf.create(filename1,'NETCDF4');
+cleanup_ncid1 = onCleanup(@() netcdf.close(ncid1) ); % make sure the file will be closed
 
 for ii = 1:length( info1.Dim )
     dimID1(ii) = netcdf.defDim(ncid1, info1.Dim(ii).Name , info1.Dim(ii).Length );
@@ -187,8 +189,10 @@ for iv = 1:length(info0.Variables)
     clear VarDim_now VarDimIND_now varID1 varID0 var_value
 end
 
-netcdf.close(ncid0);
-netcdf.close(ncid1);
+%netcdf.close(ncid0);
+%netcdf.close(ncid1);
+
+clear cleanup_ncid0 cleanup_ncid1
 
 
 %% test =========================================================
