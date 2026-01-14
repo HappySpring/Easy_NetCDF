@@ -63,7 +63,15 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
-
+% By L. Chi, v2.00 2026-01-14: It can resume from previous downloads with 'is_resumable', true 
+%                              Please note that 
+%                                    + this is en experimental feature and use with caution.
+%                                    + It is designed to resume from previous download with is_resumable=true
+%                                    + Any existing files created with **is_resumable=false (default)** are considred downloaded successfully. 
+%                                    + It create global att in netcdf files to save progress  
+%                                    + It creates a _rtmp.mat file to save remote file info and parameters used in previous downloads
+%
+% By L. Chi, v1.66 2026-01-xx: close netcdf files by `cleanup_ncid0 = onCleanup(@() netcdf.close(ncid0));`
 % By L. Chi, v1.65 2025-01-15: support rare data types
 % By L. Chi, V1.64 2022-08-06: add new parameter: "fun_handle_retry_too_many_times"
 %                              The behaviors after exceeding max retry
@@ -223,6 +231,21 @@ end
 %
     [fun_handle_retry_too_many_times, varargin] =  FUN_codetools_read_from_varargin( varargin, 'fun_handle_retry_too_many_times', [], true );
 
+
+% + is_resumable (default: false) [not finished yet!]
+%   support resume from last download
+%   support ignore finished files. Please note that this is done by
+%   checking a global attributes 'download_status` added by this command
+%   and all files without this attributes will be considered downloaded
+%   successfully!
+%   + this is en experimental feature and use with caution.
+%   + It is designed to resume from previous download with is_resumable=true
+%   + Any existing files created with **is_resumable=false (default)** are considred downloaded successfully. 
+%   + It create global att in netcdf files to save progress  
+%   + It creates a _rtmp.mat file to save remote file info and parameters used in previous downloads
+    [is_resumable, varargin] =  FUN_codetools_read_from_varargin( varargin, 'is_resumable', false, true );
+
+
 % --------------------------------------------
 % all optional paramters should have been processed by here. Nothing should
 % be left in varargin.
@@ -230,15 +253,75 @@ end
         error('Unkown parameters found!')
     end
 
+    ncvid_global = netcdf.getConstant('NC_GLOBAL');
+%% 
+% =========================================================================
+% check resume status
+% =========================================================================
+
+% opendap_download_status
+%        init   : initial netcdf files
+%        var_def: defnining variable
+%        var_writing: writing variables
+%        success: finished
+if is_resumable && exist( filename1, 'file' )
+
+    if FUN_nc_is_exist_attibute( filename1, [], 'opendap_download_status' )
+        current_status = FUN_nc_attget( filename1, [], 'opendap_download_status');
+        
+        if strcmpi( current_status, 'success')
+            fprintf(' Skip file %s: file exist, att[opendap_download_status]= %s\n', filename1, current_status);
+            return
+        end
+    else
+        fprintf(' Skip file %s: file exist, att[opendap_download_status] does not exist!\n', filename1);
+        return
+    end
+
+    if strcmpi(current_status,'var_def') || strcmpi(current_status,'var_writing') 
+        is_new_file = false;  % resume from existing group.
+    else
+        is_new_file = true; % it will be treated as a new file.
+    end
+
+else
+
+    is_new_file = true;
+end
 
 %% Load the original data
+
 
 % execute ncinfo and netcdf.open in try-catch blocks to avoid
 % server/connection errors.
 
+fn_resume_tmp = [filename1 '._rtmp.mat'];
+
+input_varlist = {'filename0', 'filename1', 'dim_limit_name', 'dim_limit_val', 'var_download', 'var_divided', 'divided_dim_str', 'Max_Count_per_group'};
+
+if is_new_file
 % info0 = ncinfo(filename0);
     f_ncinfo = @(x_filename)ncinfo( x_filename );
     info0 = FUN_codetool_retry( f_ncinfo, filename0, N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
+
+    if is_resumable
+        save(fn_resume_tmp, 'info0', input_varlist{:});
+    end
+else
+    resume_tmp = load( fn_resume_tmp );
+    info0 = resume_tmp.info0;
+
+
+    % check 
+    for ii = 1:length(input_varlist)
+        eval(['tmp = ' input_varlist{ii} ';']);
+        if isequaln( resume_tmp.(input_varlist{ii}), tmp)
+        else
+            error('The input paramters are different from those in previous downloads. Please retry by disable is_resumable')
+        end
+    end
+end
+
 
 % ncid0 = netcdf.open( filename0, 'NOWRITE' );
     f_nc_open_nw = @(x_filename)netcdf.open( x_filename, 'NOWRITE' );
@@ -309,33 +392,72 @@ end
 
 
 %% open new file and write dimensions
-ncid1 = netcdf.create(filename1,'NETCDF4');
-cleanup_ncid1 = onCleanup(@() netcdf.close(ncid1));
 
-for ii = 1:length( info1.Dim )
-    dimID1(ii) = netcdf.defDim(ncid1, info1.Dim(ii).Name , info1.Dim(ii).count );
+
+
+if is_new_file
+    fprintf(' create new file:    %s \n', filename1);
+    ncid1 = netcdf.create(filename1,'NETCDF4');
+    cleanup_ncid1 = onCleanup(@() netcdf.close(ncid1));
+
+else
+    fprintf(' open existing file: %s \n', filename1);
+    ncid1 = netcdf.open(filename1,'WRITE');
+    cleanup_ncid1 = onCleanup(@() netcdf.close(ncid1));       
 end
 
-% set global ATT
-for ii = 1:length(info0.Attributes)
-    
-    if strcmpi( info0.Attributes(ii).Name, '_NCProperties')
-        % skip built-in properties that cannot be edited directly.
-        continue
+
+if is_new_file
+   
+   netcdf.putAtt( ncid1, ncvid_global, 'opendap_download_status', 'init');
+
+   for ii = 1:length( info1.Dim )
+       dimID1(ii) = netcdf.defDim(ncid1, info1.Dim(ii).Name , info1.Dim(ii).count );
+   end
+
+   % set global ATT
+   for ii = 1:length(info0.Attributes)
+
+       if strcmpi( info0.Attributes(ii).Name, '_NCProperties')
+           % skip built-in properties that cannot be edited directly.
+           continue
+       end
+
+       netcdf.putAtt( ncid1, ncvid_global, info0.Attributes(ii).Name, info0.Attributes(ii).Value);
+   end
+
+   netcdf.putAtt( ncid1, ncvid_global, 'Copy Source', filename0 );
+   netcdf.putAtt( ncid1, ncvid_global, 'Copy Date', datestr(now) );
+   for ii = 1:length( dim_limit_name )
+       netcdf.putAtt( ncid1, ncvid_global, ['Copy Range-' num2str(ii)], [dim_limit_name{ii} ' ' num2str( dim_limit_val{ii} )] );
+   end
+
+else
+    for ii = 1:length( info1.Dim )
+        dimID1(ii) = netcdf.inqDimID(ncid1, info1.Dim(ii).Name);
     end
-    
-    netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), info0.Attributes(ii).Name, info0.Attributes(ii).Value);
 end
 
-netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), 'Copy Source', filename0 );
-netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), 'Copy Date', datestr(now) );
-for ii = 1:length( dim_limit_name )
-    netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), ['Copy Range-' num2str(ii)], [dim_limit_name{ii} ' ' num2str( dim_limit_val{ii} )] );
-end
 %% load/write variable
-N_adding_var = 0; % This is the "N_adding_var" time a new varialbe is added to this file.
 
-for iv = 1:length(info0.Variables)
+% determine where to start/resume 
+if is_new_file
+    %N_adding_var = 0; % This is the "N_adding_var" time a new varialbe is added to this file.
+    iv_list = 1:length(info0.Variables);
+else
+    resume_info.iv = double(netcdf.getAtt(ncid1, ncvid_global, 'opendap_resume_info_iv'));
+
+    resume_info.ig = double(netcdf.getAtt(ncid1, ncvid_global, 'opendap_resume_info_ig'));
+
+    %resume_info.N_adding_var = FUN_nc_attget( filename1, [], 'opendap_resume_info_iv_N_adding_var');
+    
+    %N_adding_var = resume_info.N_adding_var -1; % the "N_adding_var = N_adding_var + 1;" will be executed again in the loop.
+    iv_list = resume_info.iv : length(info0.Variables);
+end
+
+% ==== LOOP FOR VARIABLES =================================================
+for iv = iv_list
+
     if isempty(var_download) || any( strcmp( info0.Variables(iv).Name, var_download ) ) || any( strcmp( info0.Variables(iv).Name, dim_limit_name ) ) 
         if any( strcmp( info0.Variables(iv).Name, var_exclude ) )
             % Skip this variable, it has been excluded.
@@ -348,9 +470,16 @@ for iv = 1:length(info0.Variables)
         continue
     end
     
-   % Prepare for varialbes
+    % add notes
+    netcdf.putAtt( ncid1, ncvid_global, 'opendap_download_status', 'var_def');
+    netcdf.putAtt( ncid1, ncvid_global, 'opendap_resume_info_iv',  iv);
+    netcdf.putAtt( ncid1, ncvid_global, 'opendap_resume_info_ig',  1 );
+
+    netcdf.sync( ncid1 )
+
+   % Prepare for variables
     VarDim_now   = info0.Variables(iv).Dimensions;
-    N_adding_var = N_adding_var + 1;
+    %N_adding_var = N_adding_var + 1;
     
     if ~isempty( VarDim_now )
         % This is the regular case
@@ -382,9 +511,9 @@ for iv = 1:length(info0.Variables)
     end
 
     % Define Variable -----------------------------------------------------
-    if N_adding_var > 1
-        netcdf.reDef(ncid1)
-    end
+    %if N_adding_var > 1
+    netcdf.reDef(ncid1)
+    %end
     
     [var_type, is_dv_success] = FUN_nc_defVar_datatypeconvert(info0.Variables(iv).Datatype);
 
@@ -399,41 +528,58 @@ for iv = 1:length(info0.Variables)
     end
     
 
-    
-    if is_var_with_dim
-        varID1 = netcdf.defVar( ncid1, ...
-            info0.Variables(iv).Name, ...
-            var_type, ...
-            dimID1( VarDimIND_now ) );
-    else
-        varID1 = netcdf.defVar( ncid1, ...
-            info0.Variables(iv).Name, ...
-            var_type, ...
-            [] );
-    end
-    
-    % Setup compression
-    netcdf.defVarDeflate( ncid1, varID1, true, true, compression_level );%compression level-1 basic
-    
-    % set chunk size (not necessary for non-dimensional var)
-    if is_auto_chunksize && is_var_with_dim
-        tmp_bytes_per_val = FUN_nc_internal_bytes_per_value( info0.Variables(iv).Datatype );
-        tmp_chunksize = FUN_nc_internal_calc_chunk( count, tmp_bytes_per_val );
-        netcdf.defVarChunking( ncid1, varID1, 'CHUNKED', tmp_chunksize );
-    end
-    
-    % Add attribute -------------------------------------------------------
-    for ii = 1:length(info0.Variables(iv).Attributes)
-        if strcmp( info0.Variables(iv).Attributes(ii).Name, '_FillValue')
-            % _FillValue can only be written by specific commends.
-            netcdf.defVarFill( ncid1, varID1, false, info0.Variables(iv).Attributes(ii).Value ) 
+    if is_new_file || iv > iv_list(1) || ( ~is_new_file && ~FUN_nc_is_exist_variable( filename1, info0.Variables(iv).Name) )
+
+        if is_var_with_dim
+            varID1 = netcdf.defVar( ncid1, ...
+                info0.Variables(iv).Name, ...
+                var_type, ...
+                dimID1( VarDimIND_now ) );
         else
-            netcdf.putAtt( ncid1, varID1, info0.Variables(iv).Attributes(ii).Name, info0.Variables(iv).Attributes(ii).Value);
+            varID1 = netcdf.defVar( ncid1, ...
+                info0.Variables(iv).Name, ...
+                var_type, ...
+                [] );
         end
+    
+    else
+        varID1 = netcdf.inqVarID( ncid1, info0.Variables(iv).Name );
+
+    end
+    
+    if is_new_file || (iv == iv_list(1) && strcmpi(current_status,'var_def') ) || iv > iv_list(1)
+
+        % Setup compr   ession
+        [~,~,tmp_pre_compress_level] = netcdf.inqVarDeflate(ncid1, varID1);
+        if tmp_pre_compress_level == 0 && compression_level > 0
+        netcdf.defVarDeflate( ncid1, varID1, true, true, compression_level );%compression level-1 basic
+        end
+        % set chunk size (not necessary for non-dimensional var)
+        if is_auto_chunksize && is_var_with_dim
+            tmp_bytes_per_val = FUN_nc_internal_bytes_per_value( info0.Variables(iv).Datatype );
+            tmp_chunksize = FUN_nc_internal_calc_chunk( count, tmp_bytes_per_val );
+            netcdf.defVarChunking( ncid1, varID1, 'CHUNKED', tmp_chunksize );
+        end
+        
+        % Add attribute -------------------------------------------------------
+        for ii = 1:length(info0.Variables(iv).Attributes)
+            if strcmp( info0.Variables(iv).Attributes(ii).Name, '_FillValue')
+                % _FillValue can only be written by specific commends.
+
+                [tmp_noFillMode,tmp_fillValue] = netcdf.inqVarFill( ncid1, varID1 );
+                if isequal( tmp_fillValue, info0.Variables(iv).Attributes(ii).Value )
+                else
+                    netcdf.defVarFill( ncid1, varID1, false, info0.Variables(iv).Attributes(ii).Value ) 
+                end
+            else
+                netcdf.putAtt( ncid1, varID1, info0.Variables(iv).Attributes(ii).Name, info0.Variables(iv).Attributes(ii).Value);
+            end
+        end
+        
     end
 
     netcdf.endDef(ncid1)
-    
+        
     % Decided how to download this variable -------------------------------
     if any( strcmp(info0.Variables(iv).Name, dim_limit_name ) ) || isempty(divided_dim_str)
         is_load_all_at_once = 1; % This variable will be loaded once for all
@@ -518,7 +664,19 @@ for iv = 1:length(info0.Variables)
         %tem_save_ind_end   = tem_save_ind_bd(2:end);
         
         % ### load data 
-        for ig = 1:tem_N_Dgroup
+
+        netcdf.putAtt( ncid1, ncvid_global, 'opendap_download_status', 'var_writing');
+        netcdf.sync( ncid1 )
+
+        if is_new_file || iv > iv_list(1)
+            iglist =              1 : tem_N_Dgroup;
+
+        else
+            iglist = resume_info.ig : tem_N_Dgroup;
+
+        end
+
+        for ig = iglist
             
             % prepare [start count str] for each group
             tem_start = start;
@@ -531,6 +689,10 @@ for iv = 1:length(info0.Variables)
             % disp
             disp([ datestr(now) '      ' VarDim_now(divided_dim).Name ': Block ' num2str(ig) ' of ' num2str(tem_N_Dgroup), ...
                                                                       ', Index ' num2str(tem_start(divided_dim)) ' - ' num2str(tem_start(divided_dim)+tem_count(divided_dim)-1) ' of ' num2str(start(divided_dim)) ' - ' num2str(start(divided_dim)+count(divided_dim)-1) ])
+            
+            netcdf.putAtt( ncid1, ncvid_global, 'opendap_resume_info_ig',  ig);
+            netcdf.sync( ncid1 )
+
             % read data 
             count_err = 0;
             while count_err <= N_max_retry
@@ -575,6 +737,10 @@ for iv = 1:length(info0.Variables)
 
     clear VarDim_now VarDimIND_now varID1 varID0 var_value
 end
+
+netcdf.putAtt( ncid1, ncvid_global, 'opendap_download_status', 'success');
+
+delete(fn_resume_tmp)
 
 % netcdf.close is replaced by     cleanup_ncid0 = onCleanup(@() netcdf.close(ncid0))
 % netcdf.close(ncid0);
