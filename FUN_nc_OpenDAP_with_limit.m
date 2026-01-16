@@ -63,6 +63,7 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+% by L. Chi, v2.01 2026-01-16: rearrange disp message in retry block to make it more friendly.
 % By L. Chi, v2.00 2026-01-14: It can resume from previous downloads with 'is_resumable', true 
 %                              Please note that 
 %                                    + this is en experimental feature and use with caution.
@@ -684,11 +685,7 @@ for iv = iv_list
             
             tem_start(divided_dim) = tem_Dstart_list(ig);
             tem_count(divided_dim) = tem_Dcount_list(ig);
-            
-            % disp
-            disp([ datestr(now) '      ' VarDim_now(divided_dim).Name ': Block ' num2str(ig) ' of ' num2str(tem_N_Dgroup), ...
-                                                                    ', Index ' num2str(tem_start(divided_dim)) ' - ' num2str(tem_start(divided_dim)+tem_count(divided_dim)-1) ' of ' num2str(start(divided_dim)) ' - ' num2str(start(divided_dim)+count(divided_dim)-1) ])
-            
+
             netcdf.putAtt( ncid1, ncvid_global, 'opendap_resume_info_ig',  ig);
             netcdf.sync( ncid1 )
 
@@ -696,15 +693,22 @@ for iv = iv_list
             count_err = 0;
             while count_err <= N_max_retry
                 try
+
+                    % disp
+                    disp([ datestr(now) '      ' VarDim_now(divided_dim).Name ': Block ' num2str(ig) ' of ' num2str(tem_N_Dgroup), ...
+                                        ', Index ' num2str(tem_start(divided_dim)) ' - ' num2str(tem_start(divided_dim)+tem_count(divided_dim)-1) ...
+                                        ' of ' num2str(start(divided_dim)) ' - ' num2str(start(divided_dim)+count(divided_dim)-1) ]);
+
                     tem2 = netcdf.getVar( ncid0, varID0, tem_start, tem_count, tem_strid );
                     count_err = inf;
+
                 catch err_log
                     fprintf('%s: %s\n',err_log.identifier, err_log.message);
                     count_err = count_err + 1;
                     pause(pause_seconds) %retry after certain seconds (30s by default)
                     disp(['Err, retry count: ' num2str( count_err )] );
 
-                    if count_err == N_max_retry
+                    if count_err >= N_max_retry
                         if is_skip_blocks_with_errors
                             warning('prog:input', '%s: %s\n',err_log.identifier, err_log.message)
                             disp('Unexpected error. Retry exceeds max limit.. The error may occur in the server side. Those values will be skipped')
@@ -723,6 +727,9 @@ for iv = iv_list
             tem_putvar_start(divided_dim) = tem_save_ind_bd(ig) ; %
             tem_putvar_count(divided_dim) = tem_save_ind_bd(ig+1) - tem_save_ind_bd(ig);
             
+            % #TODO: HDF error may occurred here due to damaged netcdf file
+            %        it may worth to add a try-catch block to skip damaged
+            %        files?
             netcdf.putVar( ncid1, varID1, tem_putvar_start, tem_putvar_count, tem2 );
             netcdf.sync( ncid1 ); % write buffer onto disk.
 
