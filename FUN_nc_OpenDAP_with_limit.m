@@ -746,7 +746,9 @@ end
 
 netcdf.putAtt( ncid1, ncvid_global, 'opendap_download_status', 'success');
 
-delete(fn_resume_tmp)
+if is_resumable
+    delete(fn_resume_tmp)
+end
 
 % netcdf.close is replaced by     cleanup_ncid0 = onCleanup(@() netcdf.close(ncid0))
 % netcdf.close(ncid0);
