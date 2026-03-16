@@ -31,12 +31,15 @@ function FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit
 %     FUN_nc_copy_with_limit( filename0, filename1, dim_limit_name, dim_limit_val  )
 % -------------------------------------------------------------------------
 %
+% v1.26 by L. Chi (helped by Codex):
+%       Support non-contiguous 1-based index lists in dim_limit_val, using
+%       the same discrete-index behavior as FUN_nc_varget_enhanced_region_2_multifile.
+%
 % v1.25 by L. Chi: use onCleanup to make sure the netcdf files will be closed 
 % %                even if an error occurs
 % v1.24 by L. Chi: Output warning information for out of range dimension.
 %                  
 % v1.23 by L. Chi: support copy variables by indexes at specific dimensions, see "dim_varname" below
-%
 % v1.22 by L. Chi: support rare data types
 % V1.21 by L. Chi:
 %       It is possible to specify a dimension whose chunksize will be
@@ -182,11 +185,15 @@ for ii = 1:length(info0.Attributes)
     netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), info0.Attributes(ii).Name, info0.Attributes(ii).Value);
 end
 
+is_copy_with_incontinuous_dim = any(isnan([info1.Dim.start]) & [info1.Dim.count] > 0);
+
 if is_add_preset_att
     netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), 'Copy Source', filename0 );
     netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), 'Copy Date', datestr(now) );
     for ii = 1:length( dim_limit_name )
+        if ~is_copy_with_incontinuous_dim
         netcdf.putAtt( ncid1, netcdf.getConstant('NC_GLOBAL'), ['Copy Range-' num2str(ii)], [dim_limit_name{ii} ' ' num2str( dim_limit_val{ii} )] );
+        end
     end
 end
 %% load/write variable
@@ -294,7 +301,20 @@ for iv = 1:length(info0.Variables)
     % write varialbe ------------------------------------------------------
     varID0 = netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
     if is_var_with_dim
-        var_value = netcdf.getVar( ncid0, varID0, start, count, strid );
+        if is_copy_with_incontinuous_dim
+            var_dim_info = repmat(struct('Name', [], 'start', 0, 'count', 0, 'ind', []), 1, length(VarDimIND_now));
+            for id = 1:length(VarDimIND_now)
+                dim_info_now = info1.Dim( VarDimIND_now(id) );
+                var_dim_info(id).Name  = dim_info_now.Name;
+                var_dim_info(id).start = dim_info_now.start;
+                var_dim_info(id).count = dim_info_now.count;
+                var_dim_info(id).ind   = dim_info_now.ind;
+            end
+
+            var_value = FUN_nc_varget_from_vardiminfo( filename0, info0.Variables(iv).Name, var_dim_info );
+        else
+            var_value = netcdf.getVar( ncid0, varID0, start, count, strid );
+        end
     else
         var_value = netcdf.getVar( ncid0, varID0 );
     end
@@ -344,3 +364,40 @@ end
 % % % subplot(3,1,3)
 % % % q_pcolor(lon1,lat1, squeeze( t1(:,:,1) - t2(:,:,1) )');
 % % % title('t2')
+
+%% test2 ==================================================================
+% % % % % For non-contiguous 1-based index lists
+% % % %
+% % % % filelist = dir('W:\Data_climate\CMIP6\history_AWI-CM-MR_mon\zos_*.nc');
+% % % % filelist = filelist(1)
+% % % % 
+% % % % 
+% % % % lon = FUN_nc_varget_enhanced( fullfile(filelist(1).folder, filelist(1).name), 'lon');
+% % % % lat = FUN_nc_varget_enhanced( fullfile(filelist(1).folder, filelist(1).name), 'lat');
+% % % % 
+% % % % ind = find(lon>= 120 & lon <= 125 & lat >= 35 & lat <= 40);
+% % % % 
+% % % % 
+% % % % % filelist       = dir('Demo_*.nc');
+% % % % varname        = 'zos';
+% % % % dim_name       = { 'ncells' }; % In the demo files, the meridional dimension is named as "y".
+% % % % dim_limit      = { ind };
+% % % % merge_dim_name = 'time'; % merge data in "time" dimension.
+% % % % time_var_name  = 'time'; % convert values in "time" to matlab units (days since 0000-01-00 00:00).
+% % % % dim_varname    = {nan}; % This is to force the function to read values for the meridional dimension from the variable "lat".
+% % % % 
+% % % % [ out_dim, data ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, varname, dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );
+% % % % 
+% % % % [ ~, lon ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, 'lon', dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );
+% % % % [ ~, lat ] = FUN_nc_varget_enhanced_region_2_multifile( filelist, 'lat', dim_name, dim_limit, merge_dim_name, time_var_name, dim_varname );
+% % % % 
+% % % % 
+% % % % FUN_nc_copy_with_limit( fullfile(filelist(1).folder, filelist(1).name), 'test1.nc', {'ncells'}, {ind}, false, 'dim_varname',{nan} )
+% % % % 
+% % % % 
+% % % % lon2 = FUN_nc_varget_enhanced( 'test1.nc','lon');
+% % % % lat2 = FUN_nc_varget_enhanced( 'test1.nc','lat');
+% % % % data2 = FUN_nc_varget_enhanced( 'test1.nc','zos');
+% % % % 
+% % % % 
+% % % % isequal(data,data2)
