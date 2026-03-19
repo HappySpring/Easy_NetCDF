@@ -1,4 +1,4 @@
-function [ time_limit_in_ori, time_mtl ]= FUN_nc_gen_time_val_limit( filename0, time_var_str, timelimit )        
+function [ time_limit_in_ori, time_mtl ]= FUN_nc_gen_time_val_limit( filename0, time_var_str, timelimit, varargin )        
 % [ time_limit_in_ori ]= FUN_nc_gen_time_val_limit( filename0, time_var_str, timelimit )       
 % calculate time limit in the same unit as used in the netcdf file
 % -------------------------------------------------------------------------
@@ -12,12 +12,38 @@ function [ time_limit_in_ori, time_mtl ]= FUN_nc_gen_time_val_limit( filename0, 
 %       time_mtl
 % -------------------------------------------------------------------------
 %
+% V1.10 by L. Chi: support loading time series from pre-saved .mat file
+%                   [option: presaved_total_timeseries]
 % V1.01 By L. Chi: Improve performance
 % V1.00 By L. Chi (L.Chi.Ocean@outlook.com)
 % -------------------------------------------------------------------------
 %%
 
+[presaved_total_timeseries, varargin] =  FUN_codetools_read_from_varargin( varargin, 'presaved_total_timeseries', [], true );
+
+if ~isempty(varargin)
+    error('unknown input parameter!')
+end
+
+
 % load time series
+is_load_from_local = false;
+
+if ~isempty(presaved_total_timeseries)
+    url_ind = FUN_struct_find_field_ind(presaved_total_timeseries,'filename0',filename0);
+    
+    if ~isnan(url_ind)
+        is_load_from_local = true;
+    end
+
+end
+
+if is_load_from_local
+    time_in_ori = presaved_total_timeseries(url_ind).time_ori;
+    time_mtl    = presaved_total_timeseries(url_ind).time_mtl;
+
+else
+
     time_in_ori = FUN_nc_varget_enhanced( filename0,  time_var_str );
     %time_mtl    = FUN_nc_get_time_in_matlab_format( filename0, time_var_str ); % time in matlab format
     
@@ -32,6 +58,8 @@ function [ time_limit_in_ori, time_mtl ]= FUN_nc_gen_time_val_limit( filename0, 
     else
         time_mtl = tem_time_ref + time_in_ori * tem_unit_to_day;
     end
+
+end
 
 % calculate time limit in the original format of the given netcdf file
     time_ind = find( time_mtl >= timelimit(1) & time_mtl <= timelimit(2) );
