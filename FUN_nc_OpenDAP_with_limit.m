@@ -35,7 +35,10 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 %     |  var_exclude                  |      []       |                |
 %     |  pause_seconds                |      30       |                |
 %     | is_skip_out_of_limit_without_error | false    | With the default value (false), this function returns an error if no data can be found within the required range |
-%     | fun_handle_retry_too_many_times|     []       |                |              
+%     | fun_handle_retry_too_many_times|     []       |                |      
+%     |  is_resumable                  |     false     |                |
+%     |  is_debug_mode                |     false     |                |
+%         
 % Output: None
 %
 %
@@ -63,8 +66,9 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+% by L. Chi, v2.10 2026-03-20: add support for debug mode (skip try-catch blocks)
 % by L. Chi, v2.01 2026-01-16: rearrange disp message in retry block to make it more friendly.
-% By L. Chi, v2.00 2026-01-14: It can resume from previous downloads with 'is_resumable', true 
+% By L. Chi, v2.00 2-26-01-14: It can resume from previous downloads with 'is_resumable', true 
 %                              Please note that 
 %                                    + this is en experimental feature and use with caution.
 %                                    + It is designed to resume from previous download with is_resumable=true
@@ -112,7 +116,7 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 %                                            This usually happens when the variable 
 %                                            contains one value (like a 1x1 matrix). 
 %                                            This is not expected and may cause 
-%                                            error in previous codes. It is fixed from this version.
+%                    -                        error in previous codes. It is fixed from this version.
 %
 % By L. Chi, V1.20 2021-03-10: update default parameters
 % By L. Chi, V1.12 2020-02-16: Add netcdf.sync after writting each slice of data.
@@ -247,6 +251,11 @@ end
     [is_resumable, varargin] =  FUN_codetools_read_from_varargin( varargin, 'is_resumable', false, true );
 
 
+% + is_debug_mode
+%   debug mode will skip **some** try-catch blocks 
+      [is_debug_mode, varargin] =  FUN_codetools_read_from_varargin( varargin, 'is_debug_mode', false, true );
+
+
 % --------------------------------------------
 % all optional paramters should have been processed by here. Nothing should
 % be left in varargin.
@@ -303,7 +312,7 @@ input_varlist = {'filename0', 'filename1', 'dim_limit_name', 'dim_limit_val', 'v
 if is_new_file
 % info0 = ncinfo(filename0);
     f_ncinfo = @(x_filename)ncinfo( x_filename );
-    info0 = FUN_codetool_retry( f_ncinfo, filename0, N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
+    info0 = FUN_codetool_retry( f_ncinfo, filename0, N_max_retry, pause_seconds, fun_handle_retry_too_many_times, is_debug_mode );
 
     if is_resumable
         save(fn_resume_tmp, 'info0', input_varlist{:});
@@ -326,7 +335,7 @@ end
 
 % ncid0 = netcdf.open( filename0, 'NOWRITE' );
     f_nc_open_nw = @(x_filename)netcdf.open( x_filename, 'NOWRITE' );
-    ncid0 = FUN_codetool_retry( f_nc_open_nw, filename0, N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
+    ncid0 = FUN_codetool_retry( f_nc_open_nw, filename0, N_max_retry, pause_seconds, fun_handle_retry_too_many_times, is_debug_mode );
     cleanup_ncid0 = onCleanup(@() netcdf.close(ncid0));
 
 %% prepare dimensions
@@ -345,7 +354,7 @@ for ii = 1:length(info0.Dimensions)
         % execute the following command in a try-catch block:
         %   dim_info_now = FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij} );
         f_nc_genStartCount = @()FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij} );
-        dim_info_now = FUN_codetool_retry( f_nc_genStartCount, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
+        dim_info_now = FUN_codetool_retry( f_nc_genStartCount, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times, is_debug_mode );
         
         
         %var_str_now = dim_limit_name{ij};
@@ -605,7 +614,7 @@ for iv = iv_list
     % downloading varialbe ================================================
     % varID0 = netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
     f_nc_inqVarID = @()netcdf.inqVarID( ncid0, info0.Variables(iv).Name );
-    varID0 = FUN_codetool_retry( f_nc_inqVarID, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
+    varID0 = FUN_codetool_retry( f_nc_inqVarID, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times, is_debug_mode );
         
         
     if is_load_all_at_once == 1 % -----------------------------------------
@@ -618,7 +627,7 @@ for iv = iv_list
             %var_value = netcdf.getVar( ncid0, varID0 );
             f_nc_inqVarID_at_once = @()netcdf.getVar( ncid0, varID0 );
         end
-        var_value = FUN_codetool_retry( f_nc_inqVarID_at_once, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times );
+        var_value = FUN_codetool_retry( f_nc_inqVarID_at_once, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times, is_debug_mode );
         
         % write data into the output file
         netcdf.putVar( ncid1, varID1, var_value);

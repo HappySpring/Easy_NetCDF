@@ -29,6 +29,8 @@ function var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname,
 %      out_dim  : dimension info (e.g., longitude, latitude, if applicable)
 % -------------------------------------------------------------------------
 
+% v1.21 by L. CHi, 2026-04-01
+%                  Add clear error information to avoid conflicts
 % v1.20 by L. Chi, 2025-12-24
 %                  updated to be compatible with new feature: read data from incontinuous index in dim_limit input.
 % V1.03 by L. Chi. Fix a bug. The limit for time may not be applied
@@ -119,6 +121,7 @@ for ii = 1:length( var_dim_id )
                 % pass
             elseif length(dim_limit{dim_ind}) > 2
                 %
+                warning(sprintf('[dimension: %s]: length(dim_limit{dim_ind}) = %d >2 & dim_varname_now = %s, dim_varname_now will be set to nan \n',dim_name_now, length(dim_limit{dim_ind}), dim_varname_now))
                 dim_varname_now = nan;
             else
                 error
@@ -129,6 +132,13 @@ for ii = 1:length( var_dim_id )
         % #### apply limit
         %if exist('time_var_name','var') && ~isempty( time_var_name ) && strcmp( dim_name_now, time_var_name )
         if exist('time_var_name','var') && ~isempty( time_var_name ) && strcmp( dim_name_now, time_dim_name ) 
+
+            if isnan( dim_varname_now )
+                error('varname for time is set to nan manually!');
+            elseif isnumeric( dim_varname_now )
+                error('varname for time is set to a numerial array manually!');
+            end
+
             % The axis is time (with the attribute "units" like " days since 2000-01-01 00:00:00")
             dim_val_now = FUN_nc_get_time_in_matlab_format( filename, dim_varname_now ) ;
             var_dim(ii).value_name  = dim_varname_now; 

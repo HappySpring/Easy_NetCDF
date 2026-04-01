@@ -21,6 +21,9 @@ function [ time_limit_in_ori, time_mtl ]= FUN_nc_gen_time_val_limit( filename0, 
 
 [presaved_total_timeseries, varargin] =  FUN_codetools_read_from_varargin( varargin, 'presaved_total_timeseries', [], true );
 
+% This is only used to verify the early version of the script. please keep it off
+[is_double_test,            varargin] =  FUN_codetools_read_from_varargin( varargin, 'is_double_test', false, true );
+
 if ~isempty(varargin)
     error('unknown input parameter!')
 end
@@ -75,9 +78,13 @@ end
     time_mtl = time_mtl( time_ind );
     
 % test results
+% useless and to be deleted later
+if is_double_test
     time_test = FUN_nc_varget_enhanced_region_2( filename0, time_var_str, {time_var_str}, {time_limit_in_ori} );
 
     if isequal(time_test.time, time_in_ori(time_ind))
     else
         error('Failed in test, Unexpected values!');
     end
+
+end

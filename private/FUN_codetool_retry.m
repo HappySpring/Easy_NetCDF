@@ -1,4 +1,4 @@
-function varargout = FUN_codetool_retry( fun_hand, param, N_max_retry, pause_seconds, else_fun )
+function varargout = FUN_codetool_retry( fun_hand, param, N_max_retry, pause_seconds, else_fun, is_debug )
 % varargout = FUN_retry( fun_hand, param, N_max_retry )
 %
 % Execute a command and retry if an error occurred
@@ -13,6 +13,8 @@ function varargout = FUN_codetool_retry( fun_hand, param, N_max_retry, pause_sec
 % OUTPUT:
 %    Same as the regular output from fun_hand
 
+% V1.10 by L. Chi 
+%    Add debug mode
 % V1.01 by L. Chi (L.Chi.Ocean@outlook.com)
 %    Update counting strategy for retry
 %    Fix a bug in handling "else_fun"
@@ -46,6 +48,11 @@ if ~exist('else_fun','var') || isempty( else_fun )
     else_fun = @()error(['Retry exceeds max limit! Exit!']); % Execute this if reaching max number of retry.
 end
 
+if ~exist('count_err','var') || isempty( count_err )
+    % if debug mode on, try-catch structure will be skipped.
+    count_err = false;
+end
+
 %%
 % =========================================================================
 % # execute the command
@@ -53,49 +60,57 @@ end
 
 count_err = 0;
 
-while count_err <= N_max_retry
-    
-    try
-        if isempty(param)
-            [varargout{1:nargout}] = feval( fun_hand ); 
-        else 
-            [varargout{1:nargout}] = feval( fun_hand, param{:} );         
-        end
-        count_err = inf;
-        
-    catch err_log
-        fprintf('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n' );
-        FUN_ErrorInfoDisp( err_log )
-        
-        count_err = count_err + 1;
-        
-        fprintf(' \n' );
-        warning(['Err, retry count: ' num2str( count_err )] );
-         
-        if count_err >= N_max_retry %0 ">=" is adopted in case N_max_retry is set to 0.
-            warning('>>>>>> Reach N_max_retry(=%i), stop <<<<<< \n', N_max_retry)
-            % This will return an error message by default
-            tem_n_out_elsefun = nargout(else_fun);
-            
-            if tem_n_out_elsefun > 0
-                [varargout{1:tem_n_out_elsefun}] = else_fun();
+if is_debug
+    if isempty(param)
+        [varargout{1:nargout}] = feval( fun_hand );
+    else
+        [varargout{1:nargout}] = feval( fun_hand, param{:} );
+    end
+else
+
+    while count_err <= N_max_retry
+
+        try
+            if isempty(param)
+                [varargout{1:nargout}] = feval( fun_hand );
             else
-                else_fun();
+                [varargout{1:nargout}] = feval( fun_hand, param{:} );
             end
-            
-        else % sleep for a while before next try.
-            
-            fprintf('Wait for %.2f seconds ... \n', pause_seconds );
-            pause(pause_seconds) %retry after 30 seconds
-            
-            fprintf('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n' );
-            
+            count_err = inf;
+
+        catch err_log
+            fprintf('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n' );
+            FUN_ErrorInfoDisp( err_log )
+
+            count_err = count_err + 1;
+
+            fprintf(' \n' );
+            warning(['Err, retry count: ' num2str( count_err )] );
+
+            if count_err >= N_max_retry %0 ">=" is adopted in case N_max_retry is set to 0.
+                warning('>>>>>> Reach N_max_retry(=%i), stop <<<<<< \n', N_max_retry)
+                % This will return an error message by default
+                tem_n_out_elsefun = nargout(else_fun);
+
+                if tem_n_out_elsefun > 0
+                    [varargout{1:tem_n_out_elsefun}] = else_fun();
+                else
+                    else_fun();
+                end
+
+            else % sleep for a while before next try.
+
+                fprintf('Wait for %.2f seconds ... \n', pause_seconds );
+                pause(pause_seconds) %retry after 30 seconds
+
+                fprintf('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n' );
+
+            end
+
         end
-        
     end
 end
 
-if ~exist('varargout','var') 
+if ~exist('varargout','var')
     varargout = {[]};
 end
-            
