@@ -78,7 +78,7 @@ function [tem_time, raw_time, tem_time_unit] = FUN_nc_get_time_in_matlab_format(
 
             else
                     warning('Referce time is before 1583, which may cause errors due to calendar switch from Julidan to Gregorian');
-                    error(' A calendar type must be given explicitly if the reference time is before 1583!');
+                    error(' A calendar type must be given explicitly if the reference time is before 1583! try "calendar_in", gregorian');
 
             end
             

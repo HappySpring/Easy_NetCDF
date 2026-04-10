@@ -191,7 +191,7 @@ for ii = 1:length( var_dim_id )
         
         if exist('time_var_name','var') && ~isempty( time_var_name ) &&  strcmp( var_dim(ii).Name, time_var_name )
             % The axis is time (with the attribute "units" like " days since 2000-01-01 00:00:00")
-            var_dim(ii).originalVal = FUN_nc_get_time_in_matlab_format( filename, var_dim(ii).Name ) ;
+            var_dim(ii).originalVal = FUN_nc_get_time_in_matlab_format( filename, var_dim(ii).Name, 'calendar_in', calendar_in) ;
             var_dim(ii).is_time     = true;
             var_dim(ii).value       = var_dim(ii).originalVal;
             
