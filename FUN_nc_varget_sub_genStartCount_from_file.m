@@ -1,4 +1,4 @@
-function var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname, dim_name, dim_limit, time_var_name, dim_varname )
+function var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname, dim_name, dim_limit, time_var_name, dim_varname, varargin )
 % var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname, dim_name, dim_limit, time_var_name, dim_varname )
 % -------------------------------------------------------------------------
 % INPUT:
@@ -60,6 +60,14 @@ if ischar( dim_name )
        dim_varname = {dim_varname}; 
     end
 end
+
+% default calendar type (for the temporal fix for reference time of 0001-01-01 and time series after 1583-01-01)
+    is_rm_loadedd_param = true;
+    [calendar_in, varargin] = FUN_codetools_read_from_varargin( varargin, 'calendar_in', [], is_rm_loadedd_param );
+
+    if ~isempty(varargin)
+        error('Unexpected extra input!')
+    end
 
 %% ## prepare dimensions
 
@@ -140,7 +148,7 @@ for ii = 1:length( var_dim_id )
             end
 
             % The axis is time (with the attribute "units" like " days since 2000-01-01 00:00:00")
-            dim_val_now = FUN_nc_get_time_in_matlab_format( filename, dim_varname_now ) ;
+            dim_val_now = FUN_nc_get_time_in_matlab_format( filename, dim_varname_now, 'calendar_in', calendar_in );
             var_dim(ii).value_name  = dim_varname_now; 
             var_dim(ii).is_time     = true;
             

@@ -1,4 +1,4 @@
-function [filelist, timelist] = FUN_nc_time_select_from_multi_files( file_dir, file_list_in, time_var_str, timelimit, is_AutoTimeUnit )
+function [filelist, timelist] = FUN_nc_time_select_from_multi_files( file_dir, file_list_in, time_var_str, timelimit, is_AutoTimeUnit, calendar_in )
 %  [filelist, timelist] = FUN_nc_time_select_from_multi_files( file_dir, file_list_in, time_var_str, timelimit, is_AutoTimeUnit )
 % This function is written to find the records within a specific time
 % limit from multiple files.
@@ -25,6 +25,7 @@ function [filelist, timelist] = FUN_nc_time_select_from_multi_files( file_dir, f
 %
 %     timelist: Time from all files within the timelimit
 
+% V1.11 by L. Chi
 % V1.10 By L. Chi
 % V1.00 By L. Chi (L.Chi.Ocean@outlook.com)
 
@@ -35,6 +36,11 @@ function [filelist, timelist] = FUN_nc_time_select_from_multi_files( file_dir, f
 % filenamestr  = 'ECCOV4R2*';
 % time_var_str = 'time';
 % timelimit    = [ datenum(2002,5,1) datenum(2005,9,30) ];
+
+%% default values
+if ~exist('calendar_in','var')
+    calendar_in = [];
+end
 
 %% Initial values
     timelist0 = []; % Total timelist, including time out of the limit
@@ -65,7 +71,7 @@ for it = 1:length( filelist )
     % load time info ------------------------------------------------------
     file_now = fullfile( file_dir, filelist(it).name );
     if is_AutoTimeUnit
-        tem_timelist = FUN_nc_get_time_in_matlab_format( file_now, time_var_str );
+        tem_timelist = FUN_nc_get_time_in_matlab_format( file_now, time_var_str, 'calendar_in', calendar_in );
     elseif is_load_time_from_var
         tem_timelist = FUN_nc_varget_enhanced( file_now, time_var_str );
     else

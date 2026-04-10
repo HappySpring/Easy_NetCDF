@@ -1,5 +1,5 @@
 function filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( pregen_info, varname, dim_name, dim_limit, dim_varname )
-% var_dim = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( fn, dim_name, dim_limit, time_var_name, dim_varname )
+% filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( pregen_info, varname, dim_name, dim_limit, dim_varname )
 % This is called by FUN_nc_varget_enhanced_region_2_multifile
 % -------------------------------------------------------------------------
 % INPUT:
@@ -9,8 +9,6 @@ function filedim = FUN_nc_varget_sub_genStartCount_from_presaved_data_v2( pregen
 %      dim_name  [cell]: name of dimensions, like {'lon','lat'}
 %      dim_limit [cell]: limit of dimensions. (e.g., {[-85 -55 ], [-inf inf]})
 % 
-%      time_var_name [char, optional]: name of the time axis
-%           + variable defined by this will be loaded into time in matlab format (days since 0000-01-00)
 %      dim_varname   [cell, optional]: name of the variable defining the axis at each dimension.
 %           + by default, each axis is defined by a variable sharing the same name as the dimension. 
 %           + "dim_varname{1} = nan" indicates that the axis is not defined

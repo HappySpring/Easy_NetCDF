@@ -19,6 +19,7 @@ function data_out = FUN_nc_load_all_variables( fn, varargin )
 %                land: [192×94 double]
 
 % =========================================================================
+% v1.01 by L. Chi: add "calendar_in"
 % v1.00 by L. Chi (L.Chi.Ocean@outlook.com)
 
 % ----------------------------------------------------------------------
@@ -26,6 +27,7 @@ function data_out = FUN_nc_load_all_variables( fn, varargin )
 % ----------------------------------------------------------------------
 
 [time_var_name, varargin] = FUN_codetools_read_from_varargin( varargin, 'time_var_name', [], true ); % do not print skipped files on the screen.
+[calendar_in, varargin] = FUN_codetools_read_from_varargin( varargin, 'calendar_in', [], true ); % do not print skipped files on the screen.
 
 if ~isempty( varargin )
     error('unknown input parameters found!')

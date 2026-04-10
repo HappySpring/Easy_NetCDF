@@ -66,6 +66,7 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+% by L. Chi, v2.11 2026-04-20: add a temporal fix for netcdf files with reference time before 1583 (calendar_in)
 % by L. Chi, v2.10 2026-03-20: add support for debug mode (skip try-catch blocks)
 % by L. Chi, v2.01 2026-01-16: rearrange disp message in retry block to make it more friendly.
 % By L. Chi, v2.00 2-26-01-14: It can resume from previous downloads with 'is_resumable', true 
@@ -255,6 +256,10 @@ end
 %   debug mode will skip **some** try-catch blocks 
       [is_debug_mode, varargin] =  FUN_codetools_read_from_varargin( varargin, 'is_debug_mode', false, true );
 
+% + calendar_in
+%   calendar used in the source netcdf files. This is for the temporal fix for netcdf files with reference time before 1583 which may cause calendar problems.
+    [calendar_in, varargin] =  FUN_codetools_read_from_varargin( varargin, 'calendar_in', [], true );
+
 
 % --------------------------------------------
 % all optional paramters should have been processed by here. Nothing should
@@ -353,7 +358,7 @@ for ii = 1:length(info0.Dimensions)
         
         % execute the following command in a try-catch block:
         %   dim_info_now = FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij} );
-        f_nc_genStartCount = @()FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij} );
+        f_nc_genStartCount = @()FUN_nc_varget_sub_genStartCount_from_file( filename0, [], dim_name_now, dim_limit_val{ij}, time_var_name, dim_varname{ij}, 'calendar_in', calendar_in );
         dim_info_now = FUN_codetool_retry( f_nc_genStartCount, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times, is_debug_mode );
         
         

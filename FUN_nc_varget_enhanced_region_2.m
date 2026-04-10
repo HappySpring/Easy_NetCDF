@@ -1,4 +1,4 @@
-function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname, dim_name, dim_limit, time_var_name, dim_varname )
+function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname, dim_name, dim_limit, time_var_name, dim_varname, varargin )
 % [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname, dim_name, dim_limit, [time_var_name], [dim_varname] )
 % Advanced nc file loader
 % time_var_name is optional
@@ -52,6 +52,8 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
 % 
 %   data      200x120x23            4416000  double 
 % -------------------------------------------------------------------------
+% V2.21 by L. Chi
+%          + add optional paramter: calendar_in (experimental feature)
 % V2.20 by L. Chi, 2025-12-24
 %          + Support discrete indexes in dim_limit input.
 % V1.24 by L. Chi, 2021-08-10: filename can be a 1x1 struct (e.g., results from dir('a.nc') )
@@ -71,6 +73,8 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
 %          Add "dim_varname"
 % V1.10 By L. Chi
 % V1.00 By L. Chi (L.Chi.Ocean@outlook.com)
+
+
 
 %% ## Set default value
     if ~exist( 'time_var_name', 'var' ) 
@@ -101,7 +105,13 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
             error('Unknown input filename format')
         end
     end
-    
+
+%% ## read optional paramters
+[calendar_in, varargin] = FUN_codetools_read_from_varargin( varargin, 'calendar_in', [], true ); % do not print skipped files on the screen.
+
+if ~isempty(varargin)
+    error('Unknown parameters!')
+end
 %% ## If the variable is demensionless, read it directly and skip the rest part of this function.
 
     if FUN_nc_is_variable_dimensionless( filename, varname )
@@ -112,7 +122,7 @@ function [ out_dim, data ] = FUN_nc_varget_enhanced_region_2( filename, varname,
 
 %% ## prepare dimensions
 
-    var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname, dim_name, dim_limit, time_var_name, dim_varname );    
+    var_dim = FUN_nc_varget_sub_genStartCount_from_file( filename, varname, dim_name, dim_limit, time_var_name, dim_varname, 'calendar_in', calendar_in );    
     
 % ## Prepare variable -----------------------------------------------------
 

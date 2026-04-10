@@ -24,6 +24,8 @@ function [ time_limit_in_ori, time_mtl ]= FUN_nc_gen_time_val_limit( filename0, 
 % This is only used to verify the early version of the script. please keep it off
 [is_double_test,            varargin] =  FUN_codetools_read_from_varargin( varargin, 'is_double_test', false, true );
 
+[calendar_in,               varargin] =  FUN_codetools_read_from_varargin( varargin, 'calendar_in', [], true );
+
 if ~isempty(varargin)
     error('unknown input parameter!')
 end
@@ -46,21 +48,9 @@ if is_load_from_local
     time_mtl    = presaved_total_timeseries(url_ind).time_mtl;
 
 else
+    
+    [time_mtl, time_in_ori] = FUN_nc_get_time_in_matlab_format( filename0,  time_var_str, 'calendar_in', calendar_in );
 
-    time_in_ori = FUN_nc_varget_enhanced( filename0,  time_var_str );
-    %time_mtl    = FUN_nc_get_time_in_matlab_format( filename0, time_var_str ); % time in matlab format
-    
-    tem_time_unit = FUN_nc_attget( filename0, time_var_str, 'units' );
-    [tem_time_ref, tem_unit_str, tem_unit_to_day] = FUN_nc_get_time0_from_str( tem_time_unit );
-    
-    if strcmpi( tem_unit_str, 'months')
-        [yy,mm,dd,HH,MM,SS] = datevec( tem_time_ref );
-        
-        time_mtl = datenum( yy, mm + time_in_ori, dd, HH, MM, SS );
-        
-    else
-        time_mtl = tem_time_ref + time_in_ori * tem_unit_to_day;
-    end
 
 end
 

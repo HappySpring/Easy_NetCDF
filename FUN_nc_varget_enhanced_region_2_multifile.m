@@ -237,6 +237,7 @@ end
 [is_auto_resort_on, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_resort_on', true );
 [is_auto_remove_duplicates, varargin] = FUN_codetools_read_from_varargin( varargin, 'is_auto_remove_duplicates', false );
 
+[calendar_in, varargin] = FUN_codetools_read_from_varargin( varargin, 'calendar_in', [] );
 
 
 if ~isempty( varargin )
@@ -361,6 +362,7 @@ end
 % use the first file as the template
 
 if is_load_presaved_info == true
+
     tmp_presaved_info = presaved_info ;
     tmp_presaved_info.file = tmp_presaved_info.file(1);
     if strcmpi( pregen_data_format, 'v1' )
@@ -371,9 +373,12 @@ if is_load_presaved_info == true
         error('unknown pregen_data_format!');
     end
     var_dim0 = var_dim0.var_dim;
+
 else
+
     fn = filepath_list{1};
-    var_dim0 = FUN_nc_varget_sub_genStartCount_from_file( fn, varname, dim_name, dim_limit, time_var_name, dim_varname );
+    var_dim0 = FUN_nc_varget_sub_genStartCount_from_file( fn, varname, dim_name, dim_limit, time_var_name, dim_varname, 'calendar_in', calendar_in );
+
 end
 
 % prepare incontinuous dimensions
@@ -441,7 +446,9 @@ if ~isempty( merge_dim_name )
         else
             for ii = 1:length( filepath_list )
                 fn = filepath_list{ii};
-                var_dim_merged(ii)       = FUN_nc_varget_sub_genStartCount_from_file( fn, [], merge_dim_name, dim_limit_for_merged_var, time_var_name, dim_varname_for_merged_var );
+                var_dim_merged(ii)       = FUN_nc_varget_sub_genStartCount_from_file( fn, [], merge_dim_name, dim_limit_for_merged_var, ...
+                                                                                      time_var_name, dim_varname_for_merged_var, ...
+                                                                                      'calendar_in', calendar_in );
                 var_dim_merged(ii).value = var_dim_merged(ii).value(:)';
             end
         end
@@ -493,10 +500,10 @@ if ~isempty( merge_dim_name )
             end
 
             %data_out = FUN_nc_varget_enhanced_region( fn, varname, nc_start, nc_count, nc_strid );
-            [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2( fn, varname, dim_name, dim_limit, time_var_name, dim_original_values );
+            [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2( fn, varname, dim_name, dim_limit, time_var_name, dim_original_values, 'calendar_in', calendar_in );
 
         else
-            [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2( fn, varname, dim_name, dim_limit, time_var_name, dim_varname );
+            [ out_dim, data_out ] = FUN_nc_varget_enhanced_region_2( fn, varname, dim_name, dim_limit, time_var_name, dim_varname, 'calendar_in', calendar_in );
 
         end
 

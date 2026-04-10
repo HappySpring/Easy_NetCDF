@@ -83,6 +83,11 @@ pregen_info.merge_dim.name = merge_dim_name;
 [ignore_dim_name, varargin] = FUN_codetools_read_from_varargin( varargin, 'ignore_dim_name', [], true );
 [ignore_var_name, varargin] = FUN_codetools_read_from_varargin( varargin, 'ignore_var_name', [], true );
 
+% calendar type of input file
+[calendar_in, varargin] = FUN_codetools_read_from_varargin( varargin, 'calendar_in', [], true );
+
+
+
 if ~isempty( ignore_dim_name ) && ~iscell( ignore_dim_name )
    ignore_dim_name = {ignore_dim_name}; 
 end
@@ -258,7 +263,7 @@ for idim = 1:length( dimlist )
         pregen_info.dim(idim).varname = [];
 
     elseif strcmpi( dim_varname_now, time_var_name ) %The current dim is time
-        pregen_info.dim(idim).value   = FUN_nc_get_time_in_matlab_format( fn, dim_varname_now );
+        pregen_info.dim(idim).value   = FUN_nc_get_time_in_matlab_format( fn, dim_varname_now, 'calendar_in', calendar_in );
         pregen_info.dim(idim).is_time = true;
         pregen_info.dim(idim).varname = dim_varname_now;
 
@@ -547,6 +552,11 @@ if ispc
 
 end
 
+%%
+% =========================================================================
+% Other info: add calendar_in
+% =========================================================================
+pregen_info.calendar_in = calendar_in;
 
 %% 
 % =========================================================================
