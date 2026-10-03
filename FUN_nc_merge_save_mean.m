@@ -155,6 +155,7 @@ sample_fn = filepath_list{1};
 
 info0 = ncinfo(sample_fn);
 ncid0 = netcdf.open( sample_fn, 'NOWRITE' );
+cleanup_ncid0  = onCleanup(@() netcdf.close(ncid0) );
 
 
 % delete variables without any values -------------------------------------
@@ -219,6 +220,7 @@ if compatibility_mode == 1
 else
     ncid1 = netcdf.create( output_fn, 'NETCDF4' );
 end
+cleanup_ncid1  = onCleanup(@() netcdf.close(ncid1) );
 
 for ii = 1:length( info1.Dim )
 %     if Dim(ii).<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -422,5 +424,7 @@ for iv = 1:length(info0.Variables)
     clear VarDim_now VarDimIND_now varID1 varID0 var_value
 end
 
-netcdf.close(ncid0);
-netcdf.close(ncid1);
+%netcdf.close(ncid0);
+%netcdf.close(ncid1);
+clear cleanup_ncid0
+clear cleanup_ncid1

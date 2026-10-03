@@ -27,6 +27,10 @@ function data_out = FUN_nc_load_all_variables( fn, varargin )
 % ----------------------------------------------------------------------
 
 [time_var_name, varargin] = FUN_codetools_read_from_varargin( varargin, 'time_var_name', [], true ); % do not print skipped files on the screen.
+[dim_name,      varargin] = FUN_codetools_read_from_varargin( varargin, 'dim_name', [], true ); % do not print skipped files on the screen.
+[dim_limit,     varargin] = FUN_codetools_read_from_varargin( varargin, 'dim_limit', [], true ); % do not print skipped files on the screen.
+[dim_varname,   varargin] = FUN_codetools_read_from_varargin( varargin, 'dim_varname', [], true ); % do not print skipped files on the screen.
+
 [calendar_in, varargin] = FUN_codetools_read_from_varargin( varargin, 'calendar_in', [], true ); % do not print skipped files on the screen.
 
 if ~isempty( varargin )
@@ -72,9 +76,13 @@ for iv = 1:length( finfo.Variables )
 
     if ~isempty(time_var_name) && strcmpi( time_var_name, vn_nc )
         
-        [tmp, ~] = FUN_nc_varget_enhanced_region_2( fn, vn_nc, [], [], time_var_name, [] );
+        [tmp, ~] = FUN_nc_varget_enhanced_region_2( fn, vn_nc, dim_name, dim_limit, time_var_name, dim_varname, 'calendar_in', calendar_in);
         data_out.(vn_out) = tmp.(time_var_name);
 
+    elseif ~isempty(dim_name)
+        [~, tmp] = FUN_nc_varget_enhanced_region_2( fn, vn_nc, dim_name, dim_limit, time_var_name, dim_varname, 'calendar_in', calendar_in);
+        data_out.(vn_out) = tmp;
+    
     else
         data_out.(vn_out) = FUN_nc_varget_enhanced( fn, vn_nc );
 

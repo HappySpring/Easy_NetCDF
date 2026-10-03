@@ -66,6 +66,8 @@ function FUN_nc_OpenDAP_with_limit( filename0, filename1, dim_limit_name, dim_li
 % 
 % % Another example for 2D lon/lat cases is attached to the end.
 
+% by L. Chi, v2.12 2026-04-21: add support for unlimited dimensions. The unlimited dimension in the source file can be recognized. Or a dimension can 
+%                              be assigned as the unlimited dimension by "dim_unlimited"
 % by L. Chi, v2.11 2026-04-20: add a temporal fix for netcdf files with reference time before 1583 (calendar_in)
 % by L. Chi, v2.10 2026-03-20: add support for debug mode (skip try-catch blocks)
 % by L. Chi, v2.01 2026-01-16: rearrange disp message in retry block to make it more friendly.
@@ -260,6 +262,10 @@ end
 %   calendar used in the source netcdf files. This is for the temporal fix for netcdf files with reference time before 1583 which may cause calendar problems.
     [calendar_in, varargin] =  FUN_codetools_read_from_varargin( varargin, 'calendar_in', [], true );
 
+% + dim_unlimited
+%   name of dimension to be set as unlimited in the output file. This is for the case when the dimension is not unlimited in the source file but you want to set it as unlimited in the output file.
+%   an error will appear if there is already an unlimited dimension in the source file/url.
+    [dim_unlimited, varargin] =  FUN_codetools_read_from_varargin( varargin, 'dim_unlimited', [], true );
 
 % --------------------------------------------
 % all optional paramters should have been processed by here. Nothing should
@@ -375,6 +381,7 @@ for ii = 1:length(info0.Dimensions)
         info1.Dim(ii).count       = dim_info_now.count;
         %info1.Dim(ii).ind        = ind;
         info1.Dim(ii).is_seleted  = true;
+        info1.Dim(ii).is_unlimited= info0.Dimensions(ii).Unlimited;
         %info1.Dim(ii).is_time     = dim_info_now.is_time; 
 
     else
@@ -387,9 +394,27 @@ for ii = 1:length(info0.Dimensions)
         info1.Dim(ii).count       = info0.Dimensions(ii).Length;
         %info1.Dim(ii).ind         = 1:info1.Dim(ii).Length ;
         info1.Dim(ii).is_seleted  = false;
+        info1.Dim(ii).is_unlimited= info0.Dimensions(ii).Unlimited;
         %info1.Dim(ii).is_time     = false;
 
     end
+end
+
+% determine the unlimited dimension
+if any([info1.Dim(:).is_unlimited]) && ~isempty(dim_unlimited)
+
+    tem_dim_ind_unlimited = find( [info1.Dim(:).is_unlimited] );
+
+    if strcmpi( info1.Dim(tem_dim_ind_unlimited).Name, dim_unlimited)
+    %pass
+    else
+        error('There is already an unlimited dimension in the source file/url. You cannot set another dimension as unlimited in this case.')
+    end
+
+elseif ~isempty(dim_unlimited)
+    tem_dim_ind_unlimited = strcmpi({info1.Dim.Name}, dim_unlimited);
+    info1.Dim(tem_dim_ind_unlimited).is_unlimited = true;
+
 end
 
 %% Any data found within the required range? 
@@ -427,7 +452,12 @@ if is_new_file
    netcdf.putAtt( ncid1, ncvid_global, 'opendap_download_status', 'init');
 
    for ii = 1:length( info1.Dim )
-       dimID1(ii) = netcdf.defDim(ncid1, info1.Dim(ii).Name , info1.Dim(ii).count );
+
+       if info1.Dim(ii).is_unlimited
+           dimID1(ii) = netcdf.defDim(ncid1, info1.Dim(ii).Name , netcdf.getConstant('NC_UNLIMITED') );
+       else
+           dimID1(ii) = netcdf.defDim(ncid1, info1.Dim(ii).Name , info1.Dim(ii).count );
+       end
    end
 
    % set global ATT
@@ -635,7 +665,12 @@ for iv = iv_list
         var_value = FUN_codetool_retry( f_nc_inqVarID_at_once, [], N_max_retry, pause_seconds, fun_handle_retry_too_many_times, is_debug_mode );
         
         % write data into the output file
-        netcdf.putVar( ncid1, varID1, var_value);
+        if is_var_with_dim
+            %netcdf.putVar( ncid1, varID1, var_value);
+            netcdf.putVar( ncid1, varID1, repmat(0,[1,length(count)]), count, var_value);
+        else
+            netcdf.putVar( ncid1, varID1, var_value);
+        end
         netcdf.sync( ncid1 ); % write buffer onto disk.
         
     elseif is_load_all_at_once == 0 % -------------------------------------
